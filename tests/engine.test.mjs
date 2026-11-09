@@ -1,0 +1,5 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {locate,hourStart,lampStrength,formatTime,lightAt} from '../engine.mjs';
+test('整点跟场精确定位与七处十秒桥',()=>{const now=new Date(2026,10,8,9,20,0).getTime();assert.equal((now-hourStart(now))/1000,1200);assert.equal(locate(1200).title,'七支座');for(const end of [1200,1260,1500,1680,2100,3180,3480]){assert.equal(locate(end-10).bridge,true);assert.equal(locate(end-.01).bridge,true);assert.equal(locate(end-10.01).bridge,false);}assert.equal(locate(3540).title,'静候起身');assert.equal(locate(3600),null);});
+test('从头开始与静坐倒计时的格式',()=>{assert.equal(locate(0).offset,0);assert.equal(formatTime(3600),'60:00');assert.equal(formatTime(1200),'20:00');assert.equal(formatTime(-1),'00:00');});
+test('供灯三日渐暗和时间光线边界',()=>{assert.equal(lampStrength(0,0),1);assert.equal(lampStrength(0,1.5*86400000),.5);assert.equal(lampStrength(0,3*86400000),0);assert.equal(lightAt(5),'dawn');assert.equal(lightAt(9),'day');assert.equal(lightAt(17),'dusk');assert.equal(lightAt(20),'night');});
