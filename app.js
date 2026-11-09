@@ -8,7 +8,7 @@ let session=null,source='',sound=store.get('sound','silent'),quoteIndex=Number(s
 if(!['silent','music','breath','guided'].includes(sound))sound='silent';
 let lastSeat=store.get('seat',null), lamp=store.get('lamp',null);
 $('resume').hidden=!lastSeat;
-function play(media){const p=media.play();if(p)p.catch(()=>{if(session&&sound!=='silent')$('notice').textContent='声音未能播放，请再点一次声音选项。'});}
+function play(media){const p=media.play();if(p)p.catch(error=>{if(error.name==='AbortError')return;if(session&&sound!=='silent')$('notice').textContent='声音未能播放，请再点一次声音选项。'});}
 function stop(){for(const a of [audio,bed,bell])a.pause();source='';}
 function ring(){if(sound!=='silent'){bell.currentTime=0;play(bell);}}
 function showQuote(){ $('quote').textContent=config.quotes[quoteIndex%config.quotes.length]; }
