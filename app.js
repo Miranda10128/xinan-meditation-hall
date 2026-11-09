@@ -14,13 +14,61 @@ function ring(){if(sound!=='silent'){bell.currentTime=0;play(bell);}}
 function showQuote(){ $('quote').textContent=config.quotes[quoteIndex%config.quotes.length]; }
 showQuote();$('quote').onclick=()=>{quoteIndex=(quoteIndex+1)%config.quotes.length;store.set('quote',quoteIndex);showQuote();};
 if(Number.isInteger(config.tonightCount)&&config.tonightCount>=0){$('count').hidden=false;$('count').textContent=`今晚已有 ${config.tonightCount} 位同修坐过`;}
-for(let i=1;i<=108;i++){const b=document.createElement('button');b.className='seat'+(i===lastSeat?' favorite':'');b.setAttribute('aria-label',`第 ${i} 席空蒲团`);b.onclick=()=>enter(i,'follow');$('seats').append(b);}
+// Coordinates are percentages of the uncropped 1920×1080 painting, back to front.
+const seatRows = [
+  {y:65.3,left:23,right:77,width:3.2},
+  {y:69.3,left:21,right:79,width:3.6},
+  {y:73.3,left:18,right:82,width:4.0},
+  {y:77.3,left:15,right:85,width:4.5},
+  {y:81.3,left:11.5,right:88.5,width:5.0},
+  {y:85.3,left:8,right:92,width:5.6},
+  {y:89.3,left:6,right:94,width:6.2},
+  {y:93.3,left:5.5,right:94.5,width:6.8},
+  {y:97.3,left:5,right:95,width:7.4},
+];
+const seats=[];
+for(let i=1;i<=108;i++){
+  const row=seatRows[Math.floor((i-1)/12)],col=(i-1)%12;
+  const b=document.createElement('button');b.className='seat'+(i===lastSeat?' favorite':'');
+  b.setAttribute('aria-label',`第 ${i} 席`);b.title=`第 ${i} 席`;
+  b.style.left=`${row.left+(row.right-row.left)*col/11}%`;b.style.top=`${row.y}%`;
+  b.style.setProperty('--seat-width',`${row.width}%`);
+  b.onclick=()=>chooseName(i,'follow');$('seats').append(b);seats.push(b);
+}
+let pendingEntry=null,suggestedName='';
+function randomName(exclude){const options=config.names.filter(name=>name!==exclude);return options[Math.floor(Math.random()*options.length)];}
+function savedName(){const value=store.get('name','');return typeof value==='string'?Array.from(value.trim()).slice(0,4).join(''):'';}
+function chooseName(seat,mode,random=false){
+  pendingEntry={seat,mode};suggestedName=(!random&&savedName())||randomName('');
+  $('suggestedName').textContent=suggestedName;$('customName').value='';$('nameDialog').showModal();
+}
+$('shuffleName').onclick=()=>{suggestedName=randomName(suggestedName);$('suggestedName').textContent=suggestedName;$('customName').value='';};
+function limitName(){ $('customName').value=Array.from($('customName').value).slice(0,4).join(''); }
+$('customName').addEventListener('input',event=>{if(!event.isComposing)limitName();});
+$('customName').addEventListener('compositionend',limitName);
+$('nameForm').onsubmit=event=>{
+  event.preventDefault();if(!pendingEntry)return;
+  const name=Array.from($('customName').value.trim()).slice(0,4).join('')||suggestedName;
+  const {seat,mode}=pendingEntry;pendingEntry=null;store.set('name',name);$('nameDialog').close();enter(seat,mode,name);
+};
+function showSeatMarker(seat,name){
+  const b=seats[seat-1];if(!b||!name)return;
+  for(const item of seats)item.classList.remove('favorite','selected');
+  b.classList.add('favorite','selected');
+  $('seatMarker').style.left=b.style.left;$('seatMarker').style.top=b.style.top;
+  $('seatMarker').style.setProperty('--marker-scale',.6+(Math.floor((seat-1)/12)/8)*.4);
+  $('seatNameplate').textContent=name;$('seatMarker').hidden=false;
+}
+showSeatMarker(lastSeat,savedName());
+function centerScene(){const viewport=$('sceneScroll');viewport.scrollLeft=(viewport.scrollWidth-viewport.clientWidth)/2;}
+requestAnimationFrame(centerScene);window.addEventListener('resize',centerScene);
+$('collapsePractice').onclick=()=>{const collapsed=$('practice').classList.toggle('collapsed');$('practiceDetails').hidden=collapsed;$('collapsePractice').setAttribute('aria-expanded',String(!collapsed));$('collapsePractice').textContent=collapsed?'展开':'收起';};
 function position(now=Date.now()){return session?Math.max(0,(now-session.start)/1000):0;}
 function setMode(mode){if(!session)return;session.mode=mode;session.start=mode==='follow'?hourStart(Date.now()):Date.now();session.duration=mode==='quick'?1200:3600;session.done=false;source='';$('notice').textContent='开始了';ring();tick(true);}
-function enter(seat,mode){lastSeat=seat;store.set('seat',seat);session={seat,name:config.names[Math.floor(Math.random()*config.names.length)],start:mode==='follow'?hourStart(Date.now()):Date.now(),duration:mode==='quick'?1200:3600,mode,done:false};$('lobby').hidden=true;$('practice').hidden=false;$('practice').classList.add('bowing');$('nickname').textContent=`合掌 · ${session.name}`;setTimeout(()=>{if(session)$('nickname').textContent=`${session.name} · 第 ${seat} 席`;},700);$('notice').textContent='开始了';ring();tick(true);$('practice').scrollIntoView({behavior:'smooth',block:'start'});}
-$('randomSeat').onclick=()=>enter(Number.isInteger(lastSeat)&&lastSeat>=1&&lastSeat<=108?lastSeat:1+Math.floor(Math.random()*108),'follow');
-$('quickSit').onclick=()=>enter(lastSeat||1,'quick');$('resume').onclick=()=>enter(lastSeat||1,'follow');
-$('leave').onclick=()=>{session=null;stop();$('practice').hidden=true;$('lobby').hidden=false;$('resume').hidden=false;if('mediaSession'in navigator)navigator.mediaSession.playbackState='none';};
+function enter(seat,mode,name=savedName()){lastSeat=seat;store.set('seat',seat);session={seat,name:name||randomName(''),start:mode==='follow'?hourStart(Date.now()):Date.now(),duration:mode==='quick'?1200:3600,mode,done:false};$('lobby').hidden=true;document.body.classList.add('is-seated');showSeatMarker(seat,session.name);centerScene();$('practice').hidden=false;$('practice').classList.add('bowing');$('nickname').textContent=`合掌 · ${session.name}`;setTimeout(()=>{if(session)$('nickname').textContent=`${session.name} · 第 ${seat} 席`;},700);$('notice').textContent='开始了';ring();tick(true);$('sceneShell').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'start'});}
+$('randomSeat').onclick=()=>chooseName(1+Math.floor(Math.random()*108),'follow',true);
+$('quickSit').onclick=()=>chooseName(lastSeat||1,'quick');$('resume').onclick=()=>{if(savedName())enter(lastSeat||1,'follow');else chooseName(lastSeat||1,'follow');};
+$('leave').onclick=()=>{session=null;stop();document.body.classList.remove('is-seated');$('practice').hidden=true;$('lobby').hidden=false;$('resume').hidden=false;if('mediaSession'in navigator)navigator.mediaSession.playbackState='none';};
 $('follow').onclick=()=>setMode('follow');$('restart').onclick=()=>setMode('restart');$('changeQuick').onclick=()=>setMode('quick');
 $('skip').onclick=()=>{if(!session)return;session.start=Date.now()-1200000;session.mode='restart';source='';$('notice').textContent='已跳过压腿，从七支座开始。';tick(true);};
 function syncAudio(p,force=false){
@@ -41,7 +89,7 @@ function syncAudio(p,force=false){
   if(point?.bridge&&sound==='guided')audio.volume=Math.max(.08,1-point.offset/10);
 }
 audio.addEventListener('ended',()=>{if(session&&!session.done)tick(true);});
-for(const input of document.querySelectorAll('[name=sound]')){input.checked=input.value===sound;input.addEventListener('change',()=>{sound=input.value;store.set('sound',sound);stop();$('notice').textContent=sound==='silent'?'已切换为无声':'占位音频为静音，真实素材替换后即可听见。';tick(true);});}
+for(const input of document.querySelectorAll('[name=sound]')){input.checked=input.value===sound;input.addEventListener('change',()=>{sound=input.value;store.set('sound',sound);stop();$('notice').textContent=sound==='silent'?'已切换为无声':'音乐与磬声已接入；分段禅修引导语仍为静音占位。';tick(true);});}
 function tick(force=false){const now=Date.now();document.querySelector('.light').className='light '+lightAt(new Date(now).getHours());if(!session)return;
   const p=position(now),remaining=session.duration-p;
   if(remaining<=0&&!session.done){session.done=true;stop();ring();$('notice').textContent='时间到了，请慢慢起身。';if('mediaSession'in navigator)navigator.mediaSession.playbackState='paused';}
