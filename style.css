@@ -615,3 +615,426 @@ to{
   width:min(100%,calc(max(100svh,540px) * 16 / 9));
   margin:auto
 }
+
+/* v3: the room owns the viewport;
+   controls stay at its edges. */
+.scene-shell{
+  height:100svh;
+  min-height:320px;
+  background:#aab2a0
+}
+.scene-shell header{
+  padding:calc(12px + env(safe-area-inset-top)) 16px 12px;
+  background:none;
+  align-items:flex-start;
+  gap:12px
+}
+.scene-shell .brand{
+  font-size:16px;
+  font-weight:400;
+  letter-spacing:2px;
+  opacity:.8;
+  background:#17251e65;
+  padding:8px 10px;
+  border-radius:4px;
+  white-space:nowrap
+}
+.scene-shell header #nickname{
+  position:absolute;
+  top:calc(55px + env(safe-area-inset-top));
+  left:18px;
+  font-size:14px;
+  color:#e1d8bd;
+  background:#17251e60;
+  padding:5px 8px;
+  max-width:75%;
+  white-space:nowrap
+}
+.scene-shell header #cornerToggle{
+  margin-left:auto;
+  width:44px;
+  height:44px;
+  min-height:44px;
+  border-radius:50%;
+  padding:0;
+  font-size:25px;
+  background:#17251e99;
+  border-color:#d6be8355;
+  color:#e4d8b8;
+  backdrop-filter:blur(6px)
+}
+#webglHall{
+  position:absolute;
+  inset:0;
+  z-index:0
+}
+#webglHall canvas{
+  display:block;
+  width:100%;
+  height:100%;
+  touch-action:none;
+  outline-offset:-4px
+}
+.webgl-ready .scene-scroll{
+  position:absolute;
+  inset:0;
+  visibility:hidden;
+  pointer-events:none
+}
+.webgl-ready #seats{
+  visibility:visible;
+  pointer-events:none
+}
+.webgl-ready .seat{
+  position:fixed!important;
+  left:-9999px!important;
+  top:0!important;
+  width:1px!important;
+  height:1px!important;
+  min-width:0;
+  min-height:0;
+  overflow:hidden;
+  clip-path:inset(50%);
+  pointer-events:none
+}
+.webgl-ready .seat:focus-visible{
+  left:16px!important;
+  top:100px!important;
+  clip-path:none;
+  width:auto!important;
+  height:44px!important;
+  transform:none;
+  background:#1d3028;
+  color:#e1d8bd;
+  border:1px solid #d6be8370;
+  padding:8px 12px;
+  z-index:10;
+  overflow:visible;
+  pointer-events:auto
+}
+.webgl-ready .seat:focus-visible::after{
+  display:none
+}
+.webgl-ready #seatMarker{
+  display:none
+}
+.webgl-ready .hall-camera{
+  transform:none!important
+}
+.scene-scroll{
+  height:100%;
+  position:absolute;
+  inset:0
+}
+.hall-frame{
+  min-width:960px
+}
+.scene-shell:not(:has(.webgl-ready)) .hall-art{
+  object-fit:contain
+}
+#cornerPanel{
+  position:absolute;
+  top:calc(68px + env(safe-area-inset-top));
+  right:16px;
+  z-index:8;
+  width:min(300px,calc(100% - 32px));
+  max-height:calc(100svh - 140px);
+  overflow:auto;
+  padding:16px;
+  background:#1d3028e8;
+  border:1px solid #d6be834d;
+  border-radius:8px;
+  backdrop-filter:blur(12px);
+  font-size:14px;
+  color:#d2cdbb
+}
+#cornerPanel button{
+  width:100%;
+  background:#17251e55;
+  border-color:#d6be8333;
+  min-height:44px;
+  font-size:14px;
+  color:#ded7bc;
+  padding:10px
+}
+#cornerPanel #quote{
+  font-size:14px;
+  white-space:normal;
+  line-height:1.8;
+  margin:12px 0;
+  text-align:left;
+  letter-spacing:1px
+}
+#cornerPanel summary{
+  cursor:pointer;
+  padding:12px 0;
+  border-top:1px solid #d6be8333;
+  min-height:44px;
+  font-size:14px
+}
+#cornerPanel .lamp-shrine{
+  display:block;
+  border:0;
+  padding:0;
+  margin:0
+}
+#cornerPanel .lamp-shrine h2{
+  font-size:16px;
+  line-height:1.7
+}
+#cornerPanel .lamp-shrine p,#cornerPanel .eyebrow,#cornerPanel .asset-note{
+  font-size:14px;
+  line-height:1.8;
+  letter-spacing:0
+}
+#cornerPanel .lamp-shrine button{
+  flex-direction:row;
+  justify-content:center;
+  gap:12px
+}
+#cornerPanel .flame{
+  font-size:30px
+}
+#practice{
+  position:absolute;
+  bottom:calc(12px + env(safe-area-inset-bottom));
+  left:50%;
+  transform:translateX(-50%);
+  z-index:6;
+  width:min(650px,calc(100% - 24px));
+  max-height:70svh;
+  padding:8px 16px 14px;
+  background:#192d25e6;
+  border:1px solid #d6be833d;
+  border-radius:8px;
+  color:#d6d3c0;
+  backdrop-filter:blur(10px)
+}
+#practice.collapsed{
+  width:180px;
+  max-height:none;
+  padding:0 8px;
+  border-radius:24px;
+  background:#17271f99
+}
+#practice .status-strip{
+  height:46px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px
+}
+#practice .status-strip #remaining{
+  font-size:13px;
+  letter-spacing:1px;
+  white-space:nowrap;
+  opacity:.85
+}
+#practice #breathing,#practice.collapsed #breathing{
+  position:relative;
+  display:grid;
+  place-items:center;
+  width:36px;
+  height:36px;
+  flex:0 0 36px
+}
+#practice .breath-circle,#practice.collapsed .breath-circle{
+  width:22px;
+  height:22px;
+  border-color:#d6be8366;
+  background:#d6be8310;
+  box-shadow:none
+}
+#practice .breath-halo,#practice.collapsed .breath-halo{
+  width:32px;
+  height:32px;
+  border-color:#d6be8326
+}
+#practice #breathText{
+  font-size:9px;
+  letter-spacing:0;
+  opacity:.5
+}
+#collapsePractice{
+  width:40px;
+  min-height:40px;
+  padding:0;
+  border:0;
+  background:transparent;
+  color:#d1c6a1;
+  font-size:22px
+}
+#practice .session-status{
+  font-size:14px;
+  margin:6px 0;
+  color:#d6d3c0
+}
+#practice .session-status button{
+  min-height:40px;
+  padding:6px 14px;
+  background:transparent;
+  font-size:14px
+}
+#practiceDetails{
+  padding-bottom:4px
+}
+#practiceDetails .entry-hint{
+  font-size:14px;
+  line-height:1.8;
+  color:#b7bdab;
+  margin:0 0 10px
+}
+#practiceDetails .action-buttons{
+  gap:8px;
+  flex-wrap:wrap
+}
+#practiceDetails .action-buttons button,#practice .entry-options button{
+  background:#17251e66;
+  border-color:#d6be8350;
+  color:#ded6ba;
+  font-size:14px;
+  min-height:44px;
+  flex:1;
+  white-space:nowrap;
+  padding:8px 12px
+}
+#practice .sound-options label{
+  font-size:14px;
+  min-height:44px;
+  padding:10px
+}
+#practice legend,#practice #skip,#practice #subtitle,#practice #notice{
+  font-size:14px;
+  line-height:1.8
+}
+#practice #skip{
+  min-height:44px
+}
+#practice #stretchLabel{
+  font-size:14px
+}
+#practice #subtitle{
+  margin:10px auto
+}
+#practice .sound-options{
+  display:grid;
+  grid-template-columns:repeat(4,1fr)
+}
+#practice fieldset{
+  margin:12px 0
+}
+#practice #stretch img{
+  width:120px;
+  height:80px
+}
+.is-seated .status-strip #remaining{
+  min-width:45px
+}
+#nameDialog{
+  width:min(310px,calc(100% - 48px));
+  padding:18px 20px;
+  background:#20362be8;
+  border:1px solid #c9b97c66;
+  border-radius:8px;
+  backdrop-filter:blur(6px);
+  line-height:1.6
+}
+#nameDialog::backdrop{
+  background:#0b191633;
+  backdrop-filter:blur(1px)
+}
+#nameDialog h2{
+  font-size:14px;
+  text-align:left;
+  color:#b8c0ae;
+  margin:0 30px 0 0
+}
+#nameDialog .close{
+  right:8px;
+  top:8px;
+  min-height:32px;
+  padding:0 6px;
+  border:0;
+  font-size:22px
+}
+#nameDialog #suggestedName{
+  font-size:26px;
+  margin:14px 0 0;
+  letter-spacing:4px
+}
+#nameDialog #shuffleName{
+  font-size:14px;
+  min-height:36px;
+  padding:6px;
+  margin:0 0 8px
+}
+#nameDialog .custom-name-label{
+  font-size:13px
+}
+#nameDialog #customName{
+  min-height:40px;
+  padding:8px;
+  font-size:14px;
+  margin-top:6px
+}
+#nameDialog #nameLimit{
+  font-size:12px;
+  margin:8px 0
+}
+#nameDialog .primary{
+  min-height:42px;
+  margin:0;
+  font-size:14px;
+  background:#3b4b36;
+  border-color:#c9b97c70;
+  color:#e4d9b8
+}
+footer{
+  font-size:14px;
+  max-width:none;
+  background:#202d2b;
+  padding:18px 20px
+}
+footer span{
+  font-size:14px
+}
+@media(max-width:650px){
+  #practice .sound-options{
+  grid-template-columns:1fr 1fr
+}
+#practice{
+  padding:8px 12px 12px;
+  max-height:70svh
+}
+#practice.collapsed{
+  padding:0 8px
+}
+#nameDialog{
+  max-height:80svh
+}
+.scene-shell .brand{
+  font-size:14px
+}
+.scene-shell header{
+  padding-left:12px;
+  padding-right:12px
+}
+.scene-shell header #nickname{
+  left:14px;
+  font-size:12px
+}
+#cornerPanel{
+  right:12px
+}
+.scene-shell{
+  min-height:320px
+}
+
+}
+@media(prefers-reduced-motion:reduce){
+  #nameDialog,.hall-camera{
+  transition:none!important;
+  animation:none!important
+}
+
+}

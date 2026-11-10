@@ -1,6 +1,6 @@
 // 素材替换后递增 VERSION，以刷新已安装设备缓存。
-const VERSION='xinan-v1-3';
-const CORE=['./','index.html','style.css','app.js','config.js','engine.mjs','manifest.webmanifest','assets/hall.jpg','assets/icon-192.png','assets/icon-512.png',...Array.from({length:4},(_,i)=>`assets/stretch_${i+1}.png`)];
+const VERSION='xinan-v1-4';
+const CORE=['assets/vendor/three.module.js','./','index.html','style.css','app.js','config.js','engine.mjs','manifest.webmanifest','assets/hall.jpg','assets/icon-192.png','assets/icon-512.png',...Array.from({length:4},(_,i)=>`assets/stretch_${i+1}.png`)];
 self.addEventListener('install',event=>event.waitUntil(caches.open(VERSION).then(cache=>cache.addAll(CORE))));
 self.addEventListener('activate',event=>event.waitUntil((async()=>{for(const key of await caches.keys())if(key.startsWith('xinan-')&&key!==VERSION)await caches.delete(key);await self.clients.claim();})()));
 self.addEventListener('fetch',event=>{
