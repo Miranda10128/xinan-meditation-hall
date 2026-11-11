@@ -1,248 +1,282 @@
-import * as THREE from './assets/vendor/three.module.js';
 import {config} from './config.js';
 import {hourStart,locate,lampStrength,formatTime,lightAt} from './engine.mjs';
 const $=id=>document.getElementById(id);
-const store={get(key,fallback){try{return JSON.parse(localStorage.getItem('xinan.'+key))??fallback}catch{return fallback}},set(key,value){try{localStorage.setItem('xinan.'+key,JSON.stringify(value))}catch{$('notice').textContent='本地存储不可用，本次仍可静坐。'}}};
-const audio=new Audio(),bed=new Audio(),bell=new Audio('assets/qing.mp3');
-audio.preload='auto';bed.preload='auto';bed.src='assets/music_bed.mp3';bed.loop=true;bed.volume=.22;
-let session=null,source='',sound=store.get('sound','silent'),quoteIndex=Number(store.get('quote',new Date().getDate()%config.quotes.length)),lastTick=0;
-if(!['silent','music','breath','guided'].includes(sound))sound='silent';
-let lastSeat=store.get('seat',null), lamp=store.get('lamp',null);
-$('resume').hidden=!lastSeat;
-function play(media){const p=media.play();if(p)p.catch(error=>{if(error.name==='AbortError')return;if(session&&sound!=='silent')$('notice').textContent='声音未能播放，请再点一次声音选项。'});}
-function stop(){for(const a of [audio,bed,bell])a.pause();source='';}
-function ring(){if(sound!=='silent'){bell.currentTime=0;play(bell);}}
-function showQuote(){ $('quote').textContent=config.quotes[quoteIndex%config.quotes.length]; }
-showQuote();$('quote').onclick=()=>{quoteIndex=(quoteIndex+1)%config.quotes.length;store.set('quote',quoteIndex);showQuote();};
-// Coordinates are percentages of the uncropped 1920×1080 painting, back to front.
-const seatRows = [
-  {y:65.3,left:23,right:77,width:3.2},
-  {y:69.3,left:21,right:79,width:3.6},
-  {y:73.3,left:18,right:82,width:4.0},
-  {y:77.3,left:15,right:85,width:4.5},
-  {y:81.3,left:11.5,right:88.5,width:5.0},
-  {y:85.3,left:8,right:92,width:5.6},
-  {y:89.3,left:6,right:94,width:6.2},
-  {y:93.3,left:5.5,right:94.5,width:6.8},
-  {y:97.3,left:5,right:95,width:7.4},
-];
-const seats=[];
-for(let i=1;i<=108;i++){
-  const row=seatRows[Math.floor((i-1)/12)],col=(i-1)%12;
-  const b=document.createElement('button');b.className='seat'+(i===lastSeat?' favorite':'');
-  b.setAttribute('aria-label',`第 ${i} 席`);b.title=`第 ${i} 席`;
-  b.style.left=`${row.left+(row.right-row.left)*col/11}%`;b.style.top=`${row.y}%`;
-  b.style.setProperty('--seat-width',`${row.width}%`);
-  b.onclick=()=>chooseName(i,'follow');$('seats').append(b);seats.push(b);
-}
-let pendingEntry=null,suggestedName='';
-function randomName(exclude){const options=config.names.filter(name=>name!==exclude);return options[Math.floor(Math.random()*options.length)];}
-function savedName(){const value=store.get('name','');return typeof value==='string'?Array.from(value.trim()).slice(0,4).join(''):'';}
-function chooseName(seat,mode,random=false){
-  pendingEntry={seat,mode};$('nameDialog').dataset.seat=String(seat);suggestedName=(!random&&savedName())||randomName('');
-  $('suggestedName').textContent=suggestedName;$('customName').value='';$('nameDialog').showModal();
-}
-$('shuffleName').onclick=()=>{suggestedName=randomName(suggestedName);$('suggestedName').textContent=suggestedName;$('customName').value='';};
-function limitName(){ $('customName').value=Array.from($('customName').value).slice(0,4).join(''); }
-$('customName').addEventListener('input',event=>{if(!event.isComposing)limitName();});
-$('customName').addEventListener('compositionend',limitName);
-$('nameForm').onsubmit=event=>{
-  event.preventDefault();if(!pendingEntry)return;
-  const name=Array.from($('customName').value.trim()).slice(0,4).join('')||suggestedName;
-  const {seat,mode}=pendingEntry;pendingEntry=null;store.set('name',name);$('nameDialog').close();enter(seat,mode,name);
+const store={get(key,fallback){try{return JSON.parse(localStorage.getItem('xinan.'+key))??fallback}catch{return fallback}},set(key,value){try{localStorage.setItem('xinan.'+key,JSON.stringify(value))}catch{}}};
+const words={
+  "zh": {
+    "brand": "心安禅修堂",
+    "menu": "打开菜单",
+    "close": "关闭",
+    "welcome": "坐下来，给心一点安静。",
+    "intro": "这是心安禅修堂，每小时整点一场，也可以随时静坐 20 分钟。",
+    "start": "随便坐，开始",
+    "choose": "我想自己选个蒲团",
+    "sitBack": "坐回去",
+    "changeSeat": "换个地方坐",
+    "sitHere": "点这里坐下",
+    "reminder": "深呼吸，不憋气；走神了就回来",
+    "guide": "温和的动作示范",
+    "openSound": "开声音",
+    "expand": "展开练习设置",
+    "collapse": "收起练习设置",
+    "skip": "跳过压腿，直接打坐 →",
+    "entryTitle": "怎么坐这一场",
+    "follow": "跟当前场",
+    "followHelp": "加入正在进行的一场，到整点结束。",
+    "restart": "从头开始",
+    "restartHelp": "从压腿起完整走一遍。",
+    "quick": "独自静坐 20 分钟",
+    "quickHelp": "不跟场，自己坐 20 分钟。",
+    "soundTitle": "画面与声音",
+    "breathOnly": "只要呼吸圈",
+    "musicOnly": "只要音乐",
+    "silent": "完全无声",
+    "volume": "音量",
+    "leave": "起身",
+    "helpTitle": "进堂说明",
+    "postureHelp": "看看七支座坐姿",
+    "lampTitle": "供灯龛",
+    "lampHeading": "留一盏灯，安放一个愿。",
+    "lampHelp": "只亮在你的设备里，三日渐暗。",
+    "disclaimer": "这里是静心空间，不做诊断、不做治疗。",
+    "help1": "选蒲团、确认名字，就能坐下。默认无声，想听音乐时点“开声音”。",
+    "help2": "跟当前整点场、从头开始，或自己坐 20 分钟。压腿量力而行，随时可跳过、起身。",
+    "help3": "自然呼吸，不必追赶圆环或屏息。名字、座位和灯愿只留在本机。",
+    "enter": "知道了，进堂",
+    "nameTitle": "选一个安静的名字",
+    "shuffle": "换一个 ↻",
+    "customName": "自己的名字（最多 4 字）",
+    "namePlaceholder": "也可以自己起一个",
+    "confirmName": "就用这个名字",
+    "seatTitle": "选一席，坐下来",
+    "seatAlt": "水彩禅堂俯瞰，前景中央有一席空蒲团",
+    "seats": "可选蒲团",
+    "seatHint": "轻点蒲团选席；前景中央是为你留的空位。",
+    "qizhiAlt": "七支座：盘腿坐稳，脊背挺直，双肩放松，双手轻放腿上",
+    "wishLabel": "写一句愿（最多 20 字）",
+    "wishPlaceholder": "愿你我，平安自在",
+    "lightLamp": "点亮这盏灯",
+    "seeYou": "好，明天再来",
+    "quoteTitle": "点一下，换一句",
+    "inhale": "吸气…",
+    "exhale": "呼气…",
+    "rest": "放松，照常呼吸",
+    "deepRhythm": "吸 5 · 放松 2 · 呼 7 · 放松 2 秒",
+    "softRhythm": "吸 5 秒 · 呼 7 秒",
+    "soundEnded": "这一场的声音已结束",
+    "soundSilent": "声音已关闭",
+    "soundPlaying": "正在播放：禅修音乐",
+    "soundBell": "声音已开启：开始与结束时各一声磬",
+    "soundLoading": "音乐正在准备，请稍候…",
+    "soundError": "音乐暂时未能播放，请再点一次“开声音”。",
+    "soundVolumeZero": "音量为 0，可拖动滑块调高",
+    "ended": "这一段安静结束了，可以慢慢起身。",
+    "skipped": "已跳过压腿，接下来调整坐姿。",
+    "offlineReady": "页面已准备离线使用 · 个人记录只在本地",
+    "offlineError": "首次请保持联网，稍后可再试离线打开",
+    "lampLit": "灯愿尚温",
+    "lampDim": "点一盏灯",
+    "lampMessage": "愿望只留在这里，可以改写或重新点亮。",
+    "lampEmpty": "写不写愿，都可以点灯。",
+    "panoramaAlt": "水彩禅堂，左右拖动看景",
+    "second": "秒",
+    "welcomeBack": "欢迎回来，{name}",
+    "backQuestion": "坐回第 {seat} 席？",
+    "nickname": "{name} · 第 {seat} 席",
+    "seatLabel": "第 {seat} 席",
+    "bow": "合掌 · {name}",
+    "followTimer": "跟本场到 {end} · 还剩 {time}",
+    "restartTimer": "本场 {end} 结束 · 还剩 {time}",
+    "quickTimer": "静坐到 {end} · 还剩 {time}",
+    "goodbye": "今天坐了 {minutes} 分钟，辛苦了。明天再来。",
+    "nextSession": "下一场 {time} 开始",
+    "stageStretch": "轻轻活动双腿，为久坐做准备。",
+    "stagePosture": "坐稳、放松，让脊背自然挺直。",
+    "stageSettle": "把手头的事放下，给自己一点安静。",
+    "stageBreathe": "把注意力轻轻放回呼吸。",
+    "stageClose": "把这份安静收好，带回生活里。",
+    "bodyStretch": "拉到微微发紧就停；不舒服时，随时跳过。",
+    "bodyPosture": "盘腿坐稳，双肩放松，双手轻放腿上。",
+    "bodyRest": "什么都不用赶，安静坐一会儿。"
+  },
+  "en": {
+    "brand": "Xinan Meditation Hall",
+    "menu": "Open menu",
+    "close": "Close",
+    "welcome": "Sit down. Let your mind settle.",
+    "intro": "A quiet meditation hall. Sessions begin every hour, or you can sit for 20 minutes whenever you like.",
+    "start": "Take a seat and begin",
+    "choose": "I would like to choose a cushion",
+    "sitBack": "Return to my seat",
+    "changeSeat": "Choose another seat",
+    "sitHere": "Sit here",
+    "reminder": "Breathe deeply, without holding. When your mind wanders, gently return.",
+    "guide": "Gentle movement demonstration",
+    "openSound": "Turn sound on",
+    "expand": "Open practice settings",
+    "collapse": "Close practice settings",
+    "skip": "Skip stretching and sit →",
+    "entryTitle": "How would you like to sit?",
+    "follow": "Join this session",
+    "followHelp": "Join the session in progress. It ends on the hour.",
+    "restart": "Start from the beginning",
+    "restartHelp": "A full session, beginning with stretching.",
+    "quick": "Sit on your own for 20 minutes",
+    "quickHelp": "Your own 20-minute timer, separate from the hourly session.",
+    "soundTitle": "View and sound",
+    "breathOnly": "Breathing circle only",
+    "musicOnly": "Music only",
+    "silent": "Keep it silent",
+    "volume": "Volume",
+    "leave": "Leave my seat",
+    "helpTitle": "A gentle introduction",
+    "postureHelp": "See the seated posture",
+    "lampTitle": "A small lamp",
+    "lampHeading": "Leave a light and a quiet wish.",
+    "lampHelp": "It stays on this device, fading over three days.",
+    "disclaimer": "A space for quiet reflection, not diagnosis or treatment.",
+    "help1": "Choose a cushion and confirm your name to sit down. Sound starts off; choose “Turn sound on” when you want music.",
+    "help2": "Join the hourly session, start at the beginning, or sit for 20 minutes. Stretch gently. You can skip it or leave at any time.",
+    "help3": "Breathe comfortably; you need not keep up with the circle or hold your breath during a pause. Your name, seat and wishes stay on this device.",
+    "enter": "Come into the hall",
+    "nameTitle": "Choose a quiet name",
+    "shuffle": "Another name ↻",
+    "customName": "Your own name (up to 4 characters)",
+    "namePlaceholder": "Or choose your own",
+    "confirmName": "Use this name",
+    "seatTitle": "Choose a cushion",
+    "seatAlt": "A watercolor view of the hall; an empty cushion is waiting in the foreground",
+    "seats": "Available cushion choices",
+    "seatHint": "Tap a cushion. The empty one in the center foreground is waiting for you.",
+    "qizhiAlt": "Sit steadily with an upright back, relaxed shoulders and hands resting on your lap",
+    "wishLabel": "A short wish (up to 20 characters)",
+    "wishPlaceholder": "May we be safe and at ease",
+    "lightLamp": "Light this lamp",
+    "seeYou": "Until tomorrow",
+    "quoteTitle": "Tap for another thought",
+    "inhale": "Breathe in…",
+    "exhale": "Breathe out…",
+    "rest": "Relax; breathe naturally",
+    "deepRhythm": "In 5 · ease 2 · out 7 · ease 2 seconds",
+    "softRhythm": "Breathe in 5 · out 7 seconds",
+    "soundEnded": "This session’s sound has ended.",
+    "soundSilent": "Sound is off",
+    "soundPlaying": "Playing: meditation music",
+    "soundBell": "Sound is on: one bell at the start and end",
+    "soundLoading": "Preparing the music…",
+    "soundError": "The music could not play. Please try “Turn sound on” again.",
+    "soundVolumeZero": "Volume is 0; move the slider to hear sound",
+    "ended": "Your quiet time is complete. Take your time getting up.",
+    "skipped": "Stretching skipped. Settle into a comfortable seat.",
+    "offlineReady": "Ready for offline use · Your details stay on this device",
+    "offlineError": "Please stay connected for the first visit; try offline again later",
+    "lampLit": "Your lamp is glowing",
+    "lampDim": "Light a lamp",
+    "lampMessage": "Your wish stays here. You may change it or light the lamp again.",
+    "lampEmpty": "A wish is optional. You can simply light a lamp.",
+    "panoramaAlt": "Watercolor meditation hall; drag sideways to look around",
+    "second": "sec",
+    "welcomeBack": "Welcome back, {name}",
+    "backQuestion": "Return to seat {seat}?",
+    "nickname": "{name} · Seat {seat}",
+    "seatLabel": "Seat {seat}",
+    "bow": "A quiet greeting · {name}",
+    "followTimer": "Together until {end} · {time} left",
+    "restartTimer": "Your session ends {end} · {time} left",
+    "quickTimer": "Your sit ends {end} · {time} left",
+    "goodbye": "You sat for {minutes} minutes. Thank you. Come back tomorrow.",
+    "nextSession": "The next session begins at {time}",
+    "stageStretch": "Gently loosen your legs and prepare to sit.",
+    "stagePosture": "Sit steadily and let your back rise naturally.",
+    "stageSettle": "Set your tasks aside. Give yourself a quiet moment.",
+    "stageBreathe": "Gently return your attention to the breath.",
+    "stageClose": "Carry a little of this quiet into your day.",
+    "bodyStretch": "Stop at a gentle stretch. Skip it whenever you need.",
+    "bodyPosture": "Sit steadily, relax your shoulders and rest your hands on your lap.",
+    "bodyRest": "There is no hurry. Simply sit for a while."
+  }
 };
-function showSeatMarker(seat,name){
-  const b=seats[seat-1];if(!b||!name)return;
-  for(const item of seats)item.classList.remove('favorite','selected');
-  b.classList.add('favorite','selected');
-  $('seatMarker').style.left=b.style.left;$('seatMarker').style.top=b.style.top;
-  $('seatMarker').style.setProperty('--marker-scale',.6+(Math.floor((seat-1)/12)/8)*.4);
-  $('seatNameplate').textContent=name;$('seatMarker').hidden=false;
-}
-showSeatMarker(lastSeat,savedName());
-const hall3D=createHall3D(id=>chooseName(id,'follow'));
-hall3D?.remember(lastSeat);
-function centerScene(){if(document.body.classList.contains('webgl-ready'))return;const viewport=$('sceneScroll');viewport.scrollLeft=(viewport.scrollWidth-viewport.clientWidth)/2;}
-requestAnimationFrame(centerScene);window.addEventListener('resize',centerScene);
-function setPracticeCollapsed(collapsed=true){$('practice').classList.toggle('collapsed',collapsed);$('practiceDetails').hidden=collapsed;$('collapsePractice').setAttribute('aria-expanded',String(!collapsed));$('collapsePractice').setAttribute('aria-label',collapsed?'展开练习面板':'收起练习面板');$('collapsePractice').textContent=collapsed?'⌃':'⌄';}
-$('collapsePractice').onclick=()=>setPracticeCollapsed(!$('practice').classList.contains('collapsed'));
-$('cornerToggle').onclick=()=>{const open=$('cornerPanel').hidden;$('cornerPanel').hidden=!open;$('cornerToggle').setAttribute('aria-expanded',String(open));};
-$('cornerLeave').onclick=()=>$('leave').click();
-document.addEventListener('keydown',event=>{if(event.key==='Escape'){$('cornerPanel').hidden=true;$('cornerToggle').setAttribute('aria-expanded','false');}});
-
-function position(now=Date.now()){return session?Math.max(0,(now-session.start)/1000):0;}
-function setMode(mode){if(!session)return;session.mode=mode;session.start=mode==='follow'?hourStart(Date.now()):Date.now();session.duration=mode==='quick'?1200:3600;session.done=false;source='';$('notice').textContent='开始了';ring();tick(true);}
-function enter(seat,mode,name=savedName()){lastSeat=seat;store.set('seat',seat);session={seat,name:name||randomName(''),start:mode==='follow'?hourStart(Date.now()):Date.now(),duration:mode==='quick'?1200:3600,mode,done:false};$('lobby').hidden=true;document.body.classList.add('is-seated');hall3D?.enter(seat);setPracticeCollapsed();$('nickname').hidden=false;$('leave').hidden=false;$('cornerLeave').hidden=false;$('cornerPanel').hidden=true;$('cornerToggle').setAttribute('aria-expanded','false');showSeatMarker(seat,session.name);centerScene();$('practice').hidden=false;$('practice').classList.add('bowing');$('nickname').textContent=`合掌 · ${session.name}`;setTimeout(()=>{if(session)$('nickname').textContent=`${session.name} · 第 ${seat} 席`;},700);$('notice').textContent='开始了';ring();tick(true);$('sceneShell').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'start'});}
-$('randomSeat').onclick=()=>chooseName(1+Math.floor(Math.random()*108),'follow',true);
-$('quickSit').onclick=()=>chooseName(lastSeat||1,'quick');$('resume').onclick=()=>{if(savedName())enter(lastSeat||1,'follow');else chooseName(lastSeat||1,'follow');};
-$('leave').onclick=()=>{session=null;stop();document.body.classList.remove('is-seated');hall3D?.leave();setPracticeCollapsed();$('nickname').hidden=true;$('leave').hidden=true;$('cornerLeave').hidden=true;$('remaining').textContent='未入座';$('breathText').textContent='静';$('practice').hidden=false;$('lobby').hidden=false;$('resume').hidden=false;if('mediaSession'in navigator)navigator.mediaSession.playbackState='none';};
-$('follow').onclick=()=>setMode('follow');$('restart').onclick=()=>setMode('restart');$('changeQuick').onclick=()=>setMode('quick');
-$('skip').onclick=()=>{if(!session)return;session.start=Date.now()-1200000;session.mode='restart';source='';$('notice').textContent='已跳过压腿，从七支座开始。';tick(true);};
-function syncAudio(p,force=false){
-  if(!session||session.done||sound==='silent'){audio.pause();bed.pause();source='';return;}
-  let file,offset=0,loop=false;
-  if(session.mode==='quick'){audio.pause();bed.pause();source='';return;}
-  const point=locate(p);
-  if(sound==='music'){file='music_bed.mp3';offset=p;loop=true;}
-  else if(sound==='breath'){file='breath_loop.mp3';offset=p%60;loop=true;}
-  else {file=point?.file;offset=point?.offset||0;loop=!!point?.bridge;}
-  if(sound==='breath'){if(bed.paused)play(bed);}else bed.pause();
-  if(!file){audio.pause();source='';return;}
-  const changed=source!==file;
-  if(changed){source=file;audio.src='assets/'+file;audio.loop=loop;audio.volume=1;}
-  const seek=()=>{if(!session||source!==file)return;let target=offset;if(Number.isFinite(audio.duration)&&audio.duration>0)target=loop?offset%audio.duration:Math.min(offset,Math.max(0,audio.duration-.05));if(force||changed||Math.abs(audio.currentTime-target)>2)try{audio.currentTime=target}catch{}};
-  if(audio.readyState>=1)seek();else audio.onloadedmetadata=seek;
-  if(audio.paused||changed)play(audio);
-  if(point?.bridge&&sound==='guided')audio.volume=Math.max(.08,1-point.offset/10);
+const quoteEn=['Home is where the mind is at ease.','It is all right to slow down.','Sit down, and let the world grow quiet.','While the breath is here, you are home.','No hurry. This hour is yours.','Let your shoulders soften; let your mind settle.','Quiet has room for everything.','Rest a while, then begin again.','The wind passes; the tree remains.','You have done enough today. Sit for a while.'];
+let lang=store.get('language',navigator.language.toLowerCase().startsWith('zh')?'zh':'en');if(!words[lang])lang='zh';
+const t=(key,values={})=>Object.entries(values).reduce((text,[k,v])=>text.replaceAll('{'+k+'}',String(v)),words[lang][key]??words.zh[key]??key);
+let session=null,selectedSeat=108,suggestedName='',quoteIndex=Number(store.get('quote',new Date().getDate()%10)),lastSeat=store.get('seat',null),lamp=store.get('lamp',null),pan=0,videoSource='',qizhiSeen=false,qizhiOrigin='',previousQizhi=false,noticeKey='',lastAudioTick=0,offlineKey='';
+const savedName=()=>{const name=store.get('name','');return typeof name==='string'?Array.from(name.trim()).slice(0,4).join(''):'';};
+if(!Number.isInteger(lastSeat)||lastSeat<1||lastSeat>108)lastSeat=null;
+const reduced=matchMedia('(prefers-reduced-motion: reduce)');
+const audio=new Audio(),bell=new Audio('assets/qing.mp3');audio.preload='none';bell.preload='auto';
+let sound='silent',presentation='all',source='',audioLoading=false,audioFailed=false,volume=Number(store.get('volume',55));if(!Number.isFinite(volume))volume=55;volume=Math.max(0,Math.min(100,volume));
+$('volume').value=String(volume);$('volumeOutput').value=volume+'%';
+function play(media){const promise=media.play();if(promise)promise.catch(error=>{if(error.name==='AbortError')return;audioFailed=true;updateSoundStatus();});}
+function stop(){audio.pause();bell.pause();source='';audioLoading=false;}
+function ring(){if(sound==='music'&&volume>0){bell.volume=volume/100;bell.currentTime=0;play(bell);}}
+function updateSoundStatus(){let key=session?.done&&sound==='music'?'soundEnded':sound==='silent'?'soundSilent':audioFailed?'soundError':volume===0?'soundVolumeZero':audioLoading?'soundLoading':'soundPlaying';$('soundStatus').textContent=t(key)+(sound==='music'&&!audioFailed?' · '+volume+'%':'');$('openSound').hidden=!session||session.done;$('openSound').textContent=sound==='silent'||audioFailed?t('openSound'):volume===0?t('soundVolumeZero'):audioLoading?t('soundLoading'):t('soundPlaying')+' · '+volume+'%';$('openSound').classList.toggle('is-playing',sound==='music');$('openSound').setAttribute('aria-label',$('openSound').textContent+' · '+$('soundStatus').textContent);for(const [id,preset]of [['breathOnly','breath'],['musicOnly','music'],['silentMode','all']])$(id).setAttribute('aria-pressed',String(presentation===preset&&(id==='musicOnly'?sound==='music':sound==='silent')));}
+audio.addEventListener('playing',()=>{audioLoading=false;audioFailed=false;updateSoundStatus();});audio.addEventListener('waiting',()=>{audioLoading=true;updateSoundStatus();});audio.addEventListener('error',()=>{audioFailed=true;audioLoading=false;updateSoundStatus();});
+function setSound(mode,preset='all'){sound=mode;presentation=preset;audioFailed=false;stop();updatePresentation();tick(true);}
+$('openSound').onclick=()=>{if(sound==='music'&&!audioFailed)setPracticeCollapsed(false);else setSound('music');};$('breathOnly').onclick=()=>setSound('silent','breath');$('musicOnly').onclick=()=>setSound('music','music');$('silentMode').onclick=()=>setSound('silent','all');
+$('volume').oninput=()=>{volume=Number($('volume').value);audio.volume=volume/100;bell.volume=volume/100;store.set('volume',volume);$('volumeOutput').value=volume+'%';updateSoundStatus();};
+function updatePresentation(){$('practiceVisual').hidden=!session||presentation==='music';$('guideFrame').hidden=!session||presentation!=='all';if($('guideFrame').hidden)$('guideVideo').pause();else updateGuide(position());updateSoundStatus();}
+function syncAudio(p,force=false){if(!session||session.done||sound==='silent'){audio.pause();source='';return;}const point=session.mode==='quick'?null:locate(Math.min(p,3599.99));let file='music_bed.mp3',offset=p,loop=true;
+  if(point?.bridge){file='music_bridge.mp3';offset=point.offset;}
+  else if(point?.file==='music_anton.mp3'||point?.file==='music_shouwei.mp3'){file=point.file;offset=point.offset;}
+  const changed=source!==file;if(changed){source=file;audio.src='assets/'+file;audio.loop=loop;audioLoading=true;}
+  audio.volume=(volume/100)*(point?.bridge?Math.max(.08,1-point.offset/10):1);
+  const seek=()=>{if(!session||source!==file)return;const target=Number.isFinite(audio.duration)&&audio.duration>0?offset%audio.duration:offset;if(force||changed||Math.abs(audio.currentTime-target)>2)try{audio.currentTime=target}catch{}};
+  if(audio.readyState>=1)seek();else audio.onloadedmetadata=seek;if(audio.paused||changed)play(audio);updateSoundStatus();
 }
 audio.addEventListener('ended',()=>{if(session&&!session.done)tick(true);});
-for(const input of document.querySelectorAll('[name=sound]')){input.checked=input.value===sound;input.addEventListener('change',()=>{sound=input.value;store.set('sound',sound);stop();$('notice').textContent=sound==='silent'?'已切换为无声':'音乐与磬声已接入；分段禅修引导语仍为静音占位。';tick(true);});}
-function tick(force=false){const now=Date.now();document.querySelector('.light').className='light '+lightAt(new Date(now).getHours());if(!session)return;
-  const p=position(now),remaining=session.duration-p;
-  if(remaining<=0&&!session.done){session.done=true;stop();ring();$('notice').textContent='时间到了，请慢慢起身。';if('mediaSession'in navigator)navigator.mediaSession.playbackState='paused';}
-  const point=locate(Math.min(p,3599.9));
-  $('stage').textContent=session.done?'本次静坐已结束':session.mode==='quick'?'独自静坐':`${point.title}${point.bridge?' · 音乐桥':''}`;
-  $('remaining').textContent=formatTime(remaining);$('skip').hidden=session.done||session.mode==='quick'||p>=1200;
-  const stretch=!session.done&&session.mode!=='quick'&&p<1200;
-  $('stretch').hidden=!stretch;$('posture').hidden=session.done||session.mode==='quick'||p<1200||p>=1260;
-  if(stretch){const i=p<360?0:p<600?1:p<900?2:3;$('stretchImage').src=`assets/stretch_${i+1}.png`;$('stretchLabel').textContent=['单腿压腿','双脚掌相对','转体压腿与晃海','换腿与跪姿'][i];}
-  $('subtitle').textContent=session.done?'把这份安静收好，带走。':session.mode==='quick'?'什么都不用做，安静坐一会儿。':point.subtitle;
-  const phase=p%10,scale=phase<4?.82+.38*(phase/4):1.2-.38*((phase-4)/6);
-  $('breathing').style.setProperty('--breath-scale',session.done?'1':scale);$('breathText').textContent=session.done?'心安':phase<4?'吸气':'呼气';
-  $('follow').setAttribute('aria-pressed',String(session.mode==='follow'));$('restart').setAttribute('aria-pressed',String(session.mode==='restart'));$('changeQuick').setAttribute('aria-pressed',String(session.mode==='quick'));
-  if(force||now-lastTick>=1000){syncAudio(p,force);lastTick=now;}
-  if('mediaSession'in navigator&&'MediaMetadata'in window){if(!navigator.mediaSession.metadata||force)navigator.mediaSession.metadata=new MediaMetadata({title:'心安禅修堂',artist:session.mode==='quick'?'静坐 20 分钟':point.title,artwork:[{src:new URL('assets/icon-192.png',location.href).href,sizes:'192x192',type:'image/png'}]});}
+function renderQuote(){$('quote').textContent=(lang==='en'?quoteEn:config.quotes)[quoteIndex%config.quotes.length];$('quote').title=t('quoteTitle');}
+$('quote').onclick=()=>{quoteIndex=(quoteIndex+1)%config.quotes.length;store.set('quote',quoteIndex);renderQuote();};
+function renderWelcome(){const returning=!!(lastSeat&&savedName());$('newActions').hidden=returning;$('returnActions').hidden=!returning;$('welcomeTitle').textContent=returning?t('welcomeBack',{name:savedName()}):t('welcome');$('welcomeText').textContent=returning?t('backQuestion',{seat:lastSeat}):t('intro');}
+function translate(){document.documentElement.lang=lang==='zh'?'zh-CN':'en';document.title=t('brand');for(const e of document.querySelectorAll('[data-i18n]'))e.textContent=t(e.dataset.i18n);for(const [attr,data]of [['aria-label','i18nAria'],['placeholder','i18nPlaceholder'],['alt','i18nAlt']])for(const e of document.querySelectorAll(`[data-${data.replace(/[A-Z]/g,c=>'-'+c.toLowerCase())}]`))e.setAttribute(attr,t(e.dataset[data]));$('language').textContent=lang==='zh'?'English':'中文';if(offlineKey)$('offlineStatus').textContent=t(offlineKey);$('panorama').setAttribute('aria-label',t('panoramaAlt'));$('panoramaImage').alt=t('panoramaAlt');for(const b of document.querySelectorAll('.seat'))b.setAttribute('aria-label',t('seatLabel',{seat:b.dataset.seat}));renderQuote();renderWelcome();renderLamp();updateSoundStatus();setPracticeCollapsed($('practice').classList.contains('collapsed'));if(session)$('nickname').textContent=t('nickname',{name:session.name,seat:session.seat});tick(true);}
+$('language').onclick=()=>{lang=lang==='zh'?'en':'zh';store.set('language',lang);translate();};
+// These hit areas follow cushions visible in the supplied painting, rather than an invented grid.
+const seatPoints=[[108,50,88],[1,25,72],[2,50,73],[3,80,73],[4,12,60],[5,33,60],[6,69,60],[7,85,60],[8,3,50],[9,20,50],[10,35,50],[11,65,50],[12,80,50],[13,98,50],[14,15,44],[15,25,44],[16,39,43],[17,63,43],[18,73,44],[19,88,44],[20,96,44],[21,3,38],[22,12,39],[23,25,39],[24,36,40],[25,61,40],[26,73,40],[27,83,39],[28,94,39],[29,18,35],[30,27,35],[31,65,33],[32,72,35],[33,83,35]];
+for(const [id,x,y]of seatPoints){const button=document.createElement('button');button.className='seat'+(id===108?' recommended':'')+(id===lastSeat?' favorite':'');button.dataset.seat=String(id);button.style.left=x+'%';button.style.top=y+'%';const label=document.createElement('span');label.textContent=String(id);button.append(label);button.onclick=()=>{$('seatDialog').close();chooseName(id);};$('seats').append(button);}
+function openSeats(){closeCorner();setPracticeCollapsed();$('seatDialog').showModal();}
+$('chooseSeat').onclick=openSeats;$('changeSeat').onclick=openSeats;
+function randomName(exclude){const choices=config.names.filter(name=>name!==exclude);return choices[Math.floor(Math.random()*choices.length)];}
+function chooseName(seat){closeCorner();setPracticeCollapsed();selectedSeat=seat;suggestedName=savedName()||randomName('');$('suggestedName').textContent=suggestedName;$('customName').value='';$('nameDialog').dataset.seat=String(seat);$('nameDialog').showModal();}
+$('randomSeat').onclick=()=>chooseName(lastSeat||108);$('sceneSeat').onclick=()=>chooseName(lastSeat||108);$('sitBack').onclick=()=>enter(lastSeat||108,savedName());
+$('shuffleName').onclick=()=>{suggestedName=randomName(suggestedName);$('suggestedName').textContent=suggestedName;$('customName').value='';};
+function limitName(){$('customName').value=Array.from($('customName').value).slice(0,4).join('');}
+$('customName').addEventListener('input',event=>{if(!event.isComposing)limitName();});$('customName').addEventListener('compositionend',limitName);
+$('nameForm').onsubmit=event=>{event.preventDefault();const name=Array.from($('customName').value.trim()).slice(0,4).join('')||suggestedName;store.set('name',name);$('nameDialog').close();enter(selectedSeat,name);};
+function position(now=Date.now()){return session?Math.max(0,(now-session.start)/1000):0;}
+function resetPosture(){qizhiSeen=false;previousQizhi=false;qizhiOrigin='';if($('qizhiDialog').open)$('qizhiDialog').close();}
+function enter(seat,name){const now=Date.now();lastSeat=seat;store.set('seat',seat);session={seat,name:name||savedName()||randomName(''),mode:'follow',start:hourStart(now),duration:3600,entered:now,done:false};resetPosture();sound='silent';presentation='all';stop();noticeKey='';$('welcome').hidden=true;$('practice').hidden=false;$('nickname').hidden=false;$('nickname').textContent=t('bow',{name:session.name});$('nickname').classList.add('bowing');setTimeout(()=>{if(session){$('nickname').textContent=t('nickname',{name:session.name,seat:session.seat});$('nickname').classList.remove('bowing');}},700);$('cornerLeave').hidden=false;document.body.classList.add('is-seated');closeCorner();setPracticeCollapsed();for(const r of document.querySelectorAll('[name=entry]'))r.checked=r.value==='follow';for(const b of document.querySelectorAll('.seat'))b.classList.toggle('favorite',Number(b.dataset.seat)===seat);updatePresentation();tick(true);}
+function setMode(mode){if(!session)return;session.mode=mode;session.start=mode==='follow'?hourStart(Date.now()):Date.now();session.duration=mode==='quick'?1200:3600;session.done=false;source='';noticeKey='';resetPosture();ring();tick(true);}
+for(const radio of document.querySelectorAll('[name=entry]'))radio.onchange=()=>setMode(radio.value);
+$('skip').onclick=()=>{if(!session)return;session.start=Date.now()-1200000;session.mode='restart';session.done=false;source='';noticeKey='skipped';for(const r of document.querySelectorAll('[name=entry]'))r.checked=r.value==='restart';resetPosture();tick(true);};
+function clockLabel(timestamp){return new Intl.DateTimeFormat(lang==='zh'?'zh-CN':'en-GB',{hour:'2-digit',minute:'2-digit',hour12:false}).format(timestamp);}
+function leave(){if(!session)return;const minutes=Math.max(0,Math.floor((Date.now()-session.entered)/60000));session=null;stop();resetPosture();$('guideVideo').pause();videoSource='';$('guideFrame').hidden=true;$('practiceVisual').hidden=true;$('openSound').hidden=true;$('practice').hidden=true;$('nickname').hidden=true;$('cornerLeave').hidden=true;$('welcome').hidden=false;document.body.classList.remove('is-seated');$('stage').textContent='';$('subtitle').textContent='';$('notice').textContent='';$('remaining').textContent='';setPracticeCollapsed();closeCorner();renderWelcome();$('goodbyeTitle').textContent=t('goodbye',{minutes});$('nextSession').textContent=t('nextSession',{time:clockLabel(hourStart(Date.now())+3600000)});$('goodbye').showModal();if('mediaSession'in navigator)navigator.mediaSession.playbackState='none';}
+$('leave').onclick=leave;$('cornerLeave').onclick=leave;
+function setPracticeCollapsed(collapsed=true){document.body.classList.toggle('settings-open',!collapsed);$('practice').classList.toggle('collapsed',collapsed);$('practiceDetails').hidden=collapsed;$('collapsePractice').setAttribute('aria-expanded',String(!collapsed));$('collapsePractice').setAttribute('aria-label',t(collapsed?'expand':'collapse'));$('collapsePractice').textContent=collapsed?'⌃':'⌄';if(!collapsed)closeCorner();}
+$('collapsePractice').onclick=()=>setPracticeCollapsed(!$('practice').classList.contains('collapsed'));
+function closeCorner(){document.body.classList.remove('menu-open');$('cornerPanel').hidden=true;$('cornerToggle').setAttribute('aria-expanded','false');}
+$('cornerToggle').onclick=()=>{const open=$('cornerPanel').hidden;if(open)setPracticeCollapsed();$('cornerPanel').hidden=!open;document.body.classList.toggle('menu-open',open);$('cornerToggle').setAttribute('aria-expanded',String(open));};
+function updateGuide(p){if(!session||$('guideFrame').hidden)return;const file=session.mode==='quick'?'guide_still.mp4':p<1200?'guide_stretch.mp4':p<1260?'guide_qizhi.mp4':'guide_still.mp4';const video=$('guideVideo');if(file!==videoSource){videoSource=file;video.src='assets/'+file;video.muted=true;video.volume=0;video.loop=true;video.playsInline=true;}if(!document.hidden&&!reduced.matches&&video.paused){const promise=video.play();if(promise)promise.catch(()=>{});}else if(document.hidden||reduced.matches){video.pause();}}
+function updatePosture(p){const inPosture=session&&session.mode!=='quick'&&!session.done&&p>=1200&&p<1260;if(inPosture&&!qizhiSeen&&!document.querySelector('dialog[open]')){qizhiSeen=true;qizhiOrigin='auto';$('qizhiDialog').showModal();}if(previousQizhi&&!inPosture&&$('qizhiDialog').open){$('qizhiDialog').close();qizhiOrigin='';}previousQizhi=!!inPosture;}
+$('closeQizhi').onclick=()=>{$('qizhiDialog').close();qizhiOrigin='';};$('qizhiDialog').addEventListener('cancel',()=>{qizhiOrigin='';});
+$('postureHelp').onclick=()=>{closeCorner();qizhiOrigin='manual';$('qizhiDialog').showModal();};
+function breathState(p){const deep=session?.mode!=='quick'&&p>=2100&&p<2400;let phase=(deep?p-2100:p)%(deep?16:12),scale,key,seconds;if(phase<5){scale=.82+.38*phase/5;key='inhale';seconds=5-phase;}else if(deep&&phase<7){scale=1.2;key='rest';seconds=7-phase;}else if(phase<(deep?14:12)){const elapsed=phase-(deep?7:5);scale=1.2-.38*elapsed/7;key='exhale';seconds=7-elapsed;}else{scale=.82;key='rest';seconds=16-phase;}return{scale,key,seconds:Math.ceil(seconds),deep};}
+function tick(force=false){const now=Date.now();document.querySelector('.light').className='light '+lightAt(new Date(now).getHours());if(!session)return;const p=position(now),remaining=session.duration-p;
+  if(remaining<=0&&!session.done){session.done=true;stop();ring();noticeKey='ended';$('openSound').hidden=true;if('mediaSession'in navigator)navigator.mediaSession.playbackState='paused';}
+  const point=locate(Math.min(p,3599.99));const stageKey=session.done?'stageClose':session.mode==='quick'?'stageBreathe':p<1200?'stageStretch':p<1260?'stagePosture':p<1500?'stageSettle':p<3480?'stageBreathe':'stageClose';
+  $('stage').textContent=t(stageKey);$('subtitle').textContent=t(p<1200&&session.mode!=='quick'?'bodyStretch':p<1260&&session.mode!=='quick'?'bodyPosture':'bodyRest');$('notice').textContent=noticeKey?t(noticeKey):'';
+  $('remaining').textContent=session.done?t('ended'):t(session.mode==='follow'?'followTimer':session.mode==='quick'?'quickTimer':'restartTimer',{end:clockLabel(session.start+session.duration*1000),time:formatTime(remaining)});$('skip').hidden=session.done||session.mode==='quick'||p>=1200;
+  const breath=breathState(p);$('breathing').style.setProperty('--breath-scale',session.done?'1':breath.scale);$('breathText').textContent=t(session.done?'rest':breath.key);$('breathTiming').textContent=breath.seconds+' '+t('second')+' · '+t(breath.deep?'deepRhythm':'softRhythm');
+  updateGuide(p);updatePosture(p);if(force||now-lastAudioTick>=1000){syncAudio(p,force);updateSoundStatus();lastAudioTick=now;}
+  if('mediaSession'in navigator&&'MediaMetadata'in window&&force)navigator.mediaSession.metadata=new MediaMetadata({title:t('brand'),artist:t('reminder'),artwork:[{src:new URL('assets/icon-192.png',location.href).href,sizes:'192x192',type:'image/png'}]});
 }
-setInterval(()=>tick(),200);document.addEventListener('visibilitychange',()=>{if(!document.hidden){tick(true);renderLamp();}});window.addEventListener('pageshow',()=>tick(true));
-if('mediaSession'in navigator){navigator.mediaSession.setActionHandler('play',()=>tick(true));navigator.mediaSession.setActionHandler('pause',()=>{audio.pause();bed.pause();});}
-function renderLamp(){const strength=lamp&&Number.isFinite(lamp.created)?lampStrength(lamp.created):0;$('lampButton').style.setProperty('--lamp-opacity',.15+.85*strength);$('lampText').textContent=strength>0?'灯愿尚温':'点一盏灯';}
-renderLamp();setInterval(renderLamp,60000);
-$('lampButton').onclick=()=>{$('wish').value=lamp?.wish||'';$('wishCount').textContent=`${Array.from($('wish').value).length} / 20`;$('lampMessage').textContent=lamp?'愿望只留在这里，可以改写或重新点亮。':'写不写愿，都可以点灯。';$('lampDialog').showModal();};
-$('wish').oninput=()=>{$('wish').value=Array.from($('wish').value).slice(0,20).join('');$('wishCount').textContent=`${Array.from($('wish').value).length} / 20`;};
-$('lampForm').onsubmit=e=>{e.preventDefault();lamp={wish:Array.from($('wish').value.trim()).slice(0,20).join(''),created:Date.now()};store.set('lamp',lamp);renderLamp();$('lampDialog').close();};
-$('helpButton').onclick=()=>$('help').showModal();for(const b of document.querySelectorAll('[data-close]'))b.onclick=()=>$(b.dataset.close).close();
-if('serviceWorker'in navigator){navigator.serviceWorker.register('./sw.js').then(()=>{$('offlineStatus').textContent='页面已准备离线缓存 · 数据只在本地';}).catch(()=>{$('offlineStatus').textContent='离线缓存不可用，请保持联网';});}
-tick();
-
-/** Low-poly hall, in metres. All geometry and materials are local. */
-function createHall3D(onSelect) {
-  const bootStart=performance.now(),host=$('webglHall'), reduced=matchMedia('(prefers-reduced-motion: reduce)');
-  let renderer,contextLost=false;
-  try { renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'low-power'}); }
-  catch { document.querySelector('.hall-art').src='assets/hall.jpg';host.hidden=true;return null; }
-  const canvas=renderer.domElement;host.append(canvas);canvas.setAttribute('aria-label','禅堂场景，俯瞰时点选蒲团，落座后拖动看景');
-  canvas.tabIndex=0;renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.outputColorSpace=THREE.SRGBColorSpace;
-  renderer.setClearColor(0xd4d9ca);document.body.classList.add('webgl-ready');
-  const scene=new THREE.Scene();scene.background=new THREE.Color(0xd4d9ca);scene.fog=new THREE.Fog(0xd4d9ca,30,100);
-  const camera=new THREE.PerspectiveCamera(52,1,.1,180);
-  const sky=new THREE.HemisphereLight(0xe9e7cc,0x626e59,2.0);scene.add(sky);
-  const sun=new THREE.DirectionalLight(0xffe0ab,2.1);sun.position.set(-8,14,-16);scene.add(sun);
-  const warm=new THREE.PointLight(0xffcf89,12,24,2);warm.position.set(0,5,-11);scene.add(warm);
-  const mat=(color)=>new THREE.MeshStandardMaterial({color,roughness:1,metalness:0,flatShading:true});
-  const wood=mat(0x8e7758),darkWood=mat(0x5d5c48),floorColors=[0xb4aa8d,0xafa68a,0xb8ae92,0xada58d];
-  const floorMat=floorColors.map(mat),mats=[mat(0xaaa28d),mat(0x9a9d88),mat(0xa8977e)];
-  function mesh(geometry,material,x,y,z,parent=scene){const m=new THREE.Mesh(geometry,material);m.position.set(x,y,z);parent.add(m);return m;}
-  const box=(w,h,d,material,x,y,z,parent)=>mesh(new THREE.BoxGeometry(w,h,d),material,x,y,z,parent);
-  const cylinder=(rt,rb,h,material,x,y,z,parent,segments=16)=>mesh(new THREE.CylinderGeometry(rt,rb,h,segments),material,x,y,z,parent);
-  // Visible seams give a wood-grain rhythm without large textures.
-  box(38,.18,36,wood,0,-.13,-1);
-  for(let i=0;i<38;i++)box(.975,.025,35.8,floorMat[i%4],i-18.5,-.025,-1);
-  const grainMat=new THREE.LineBasicMaterial({color:0x908974,transparent:true,opacity:.32});
-  const grain=[];for(let i=0;i<100;i++){const x=-18+(i*1.731)%36,z=-17+(i*2.39)%33;grain.push(x,.002,z,x+.04,.002,z+1.4+(i%4));}
-  const grainGeo=new THREE.BufferGeometry();grainGeo.setAttribute('position',new THREE.Float32BufferAttribute(grain,3));scene.add(new THREE.LineSegments(grainGeo,grainMat));
-  for(const x of [-18,18])for(const z of [-16,-8,0,8,16]){
-    cylinder(.21,.29,7.3,wood,x,3.65,z);cylinder(.36,.4,.25,darkWood,x,.125,z);
-    box(.65,.6,33,darkWood,x,7.15,0);
-  }
-  for(const x of [-8,8]){cylinder(.23,.28,7.3,wood,x,3.65,-16);box(.9,.22,.9,darkWood,x,6.85,-16);}
-  // A downward-facing ceiling is visible from the seat, not from the cutaway overview.
-  const ceiling=mesh(new THREE.PlaneGeometry(38,36),mat(0x99927a),0,7.65,-1);ceiling.rotation.x=Math.PI/2;
-  box(36.5,.65,.55,darkWood,0,7.2,-16);
-  box(16,.25,.3,darkWood,0,7.1,-11);
-  cylinder(.018,.018,1.6,darkWood,0,6.15,-11);
-  const lantern=mesh(new THREE.SphereGeometry(.46,14,8),new THREE.MeshStandardMaterial({color:0xdfca9b,emissive:0xb98b46,emissiveIntensity:.45,roughness:1}),0,5.05,-11);lantern.scale.y=1.12;
-  // Low side rails; the overhead view has no roof to obscure the 108 seats.
-  for(const x of [-18.2,18.2]){box(.18,.16,35,wood,x,1.05,0);for(let z=-16;z<=16;z+=2)box(.12,.9,.12,wood,x,.48,z);}
-  for(const x of [-12,12])box(7.5,6.5,.2,mat(0xa9a68c),x,3.25,-17);
-  for(const x of [-7.8,7.8]){box(.23,6.5,.4,wood,x,3.25,-17);for(let y=1;y<6.5;y+=.7)box(.12,.045,2,wood,x,y,-16.2);}
-  // Open central doorway, low offering table and a plain, faceless silhouette.
-  box(4.7,.55,1.3,darkWood,0,.4,-12.8);box(5,.12,1.5,wood,0,.73,-12.8);
-  const offering=mat(0x6f7660),gold=mat(0xbdb081);
-  cylinder(.32,.46,.18,gold,0,.9,-12.8);
-  const figure=new THREE.Group();figure.position.set(0,.96,-12.8);scene.add(figure);
-  const lap=mesh(new THREE.SphereGeometry(.35,10,6),offering,0,.13,0,figure);lap.scale.set(1.5,.5,.7);
-  cylinder(.14,.3,.54,offering,0,.43,0,figure,10);mesh(new THREE.SphereGeometry(.14,10,6),offering,0,.83,0,figure);
-  for(const x of [-1.35,1.35])cylinder(.18,.11,.18,gold,x,.88,-12.8);
-  // Layered ink-wash mountain silhouettes beyond the open door.
-  const mountainColors=[0x6f8b7e,0x8da395,0xa9b8a7];
-  for(let layer=2;layer>=0;layer--){const shape=new THREE.Shape();shape.moveTo(-55,-2);
-    for(let i=0;i<=60;i++){const x=-55+i*110/60;let y=1;for(let peak=0;peak<5;peak++){const center=-42+peak*21+layer*4,spread=6+(peak%3)*2;y+=(4+(peak%3)*2)*Math.exp(-Math.pow((x-center)/spread,2));}shape.lineTo(x,y+layer*1.6);}
-    shape.lineTo(55,-2);shape.closePath();const m=mesh(new THREE.ShapeGeometry(shape),new THREE.MeshBasicMaterial({color:mountainColors[layer],side:THREE.DoubleSide}),0,0,-25-layer*9);m.name='mountain-layer';}
-  // 1.1 m cushions; lateral gap 1.4 m and fore/aft gap 1.5 m.
-  const cushions=[],coords=[],shadowGeo=new THREE.CircleGeometry(.68,20),shadowMat=new THREE.MeshBasicMaterial({color:0x4e5542,transparent:true,opacity:.12,depthWrite:false});
-  const cushionGeo=new THREE.CylinderGeometry(.53,.55,.15,24);
-  const shadows=new THREE.InstancedMesh(shadowGeo,shadowMat,108),rims=new THREE.InstancedMesh(new THREE.TorusGeometry(.48,.012,4,24),mats[1],108),instance=new THREE.Object3D();scene.add(shadows,rims);
-  for(let i=0;i<108;i++){
-    const x=((i%12)-5.5)*2.5,z=-8+Math.floor(i/12)*2.6;coords.push(new THREE.Vector3(x,.13,z));
-    const cushion=mesh(cushionGeo,mats[i%3],x,.105,z);cushion.userData.seat=i+1;cushions.push(cushion);
-    instance.position.set(x,.005,z);instance.rotation.x=-Math.PI/2;instance.updateMatrix();shadows.setMatrixAt(i,instance.matrix);instance.position.y=.18;instance.updateMatrix();rims.setMatrixAt(i,instance.matrix);
-  }
-  // Fixed set of 22 decorative figures. These are scenery, never participants.
-  const decorativeSeats=[3,10,14,21,28,35,39,46,51,58,64,71,75,82,88,95,99,106,6,18,54,90];
-  const people=new Map(),robes=[mat(0x727c70),mat(0x8e816e),mat(0x697b78)];
-  const headGeo=new THREE.SphereGeometry(.13,8,6),bodyGeo=new THREE.ConeGeometry(.29,.64,10),kneeGeo=new THREE.SphereGeometry(.28,10,6);
-  for(const [index,id]of decorativeSeats.entries()){
-    const g=new THREE.Group(),p=coords[id-1],robe=robes[index%3];g.position.set(p.x,.18,p.z);scene.add(g);
-    mesh(bodyGeo,robe,0,.4,0,g);mesh(headGeo,mat(0xa39c83),0,.87,0,g);
-    for(const x of [-.22,.22]){const knee=mesh(kneeGeo,robe,x,.16,.04,g);knee.scale.set(1.3,.5,.85);}
-    const hands=mesh(new THREE.SphereGeometry(.12,8,6),robe,0,.3,-.2,g);hands.scale.set(1.8,.55,1);people.set(id,g);
-  }
-  const ringMat=new THREE.MeshBasicMaterial({color:0xcfbb80,transparent:true,opacity:.42,depthWrite:false});
-  const marker=mesh(new THREE.RingGeometry(.58,.62,32),ringMat,0,.19,0);marker.rotation.x=-Math.PI/2;marker.visible=false;
-  const halo=mesh(new THREE.CircleGeometry(.53,24),new THREE.MeshBasicMaterial({color:0xe3cf95,transparent:true,opacity:.10,depthWrite:false}),0,.195,0);halo.rotation.x=-Math.PI/2;halo.visible=false;
-  let selected=null,seated=false,motion=null,yaw=0,pitch=0,raf=0,lastRender=0,frames=0,slowFrames=0,lightClass='';
-  const aim=new THREE.Vector3(),overview=new THREE.Vector3(),overviewAim=new THREE.Vector3(0,0,-1),eye=new THREE.Vector3(),viewAim=new THREE.Vector3();
-  function fitOverview(){const aspect=camera.aspect,v=Math.tan(THREE.MathUtils.degToRad(camera.fov/2)),distance=Math.max(43,19.5/(v*aspect));overview.set(0,distance*.79,distance*.64);}
-  function resize(){const r=host.getBoundingClientRect();camera.aspect=r.width/r.height;camera.updateProjectionMatrix();renderer.setSize(r.width,r.height,false);delete host.dataset.projected;fitOverview();if(!seated&&!motion){camera.position.copy(overview);aim.copy(overviewAim);camera.lookAt(aim);}}
-  function lookingTarget(){const forward=new THREE.Vector3(-eye.x,0,-16-eye.z).normalize(),base=Math.atan2(forward.x,-forward.z),angle=base+yaw;viewAim.set(eye.x+Math.sin(angle)*12,eye.y+Math.tan(pitch)*12,eye.z-Math.cos(angle)*12);return viewAim;}
-  function move(toSeat){seated=toSeat;yaw=0;pitch=0;
-    if(toSeat){const p=coords[selected-1];eye.set(p.x,1.05,p.z+.24);}
-    const end=toSeat?eye:overview,target=toSeat?lookingTarget():overviewAim;
-    if(reduced.matches){camera.position.copy(end);aim.copy(target);camera.lookAt(aim);motion=null;}
-    else motion={start:performance.now(),from:camera.position.clone(),aim:aim.clone(),to:end.clone(),target:target.clone()};
-    host.dataset.view=toSeat?'seated':'overview';delete host.dataset.projected;
-  }
-  function select(id,active=false){selected=id;const p=coords[id-1];if(!p)return;marker.position.set(p.x,.19,p.z);marker.visible=true;halo.position.set(p.x,.195,p.z);halo.visible=active;for(const [seat,g]of people)g.visible=seat!==id;}
-  function syncLight(){const kind=document.querySelector('.light').className;if(kind===lightClass)return;lightClass=kind;
-    const settings=kind.includes('night')?[0xabbdd0,.8,0xeacb91,.65,0x91a2a1]:kind.includes('dawn')?[0xc3dcda,1.6,0xf4dcb2,1.3,0xcbd9ce]:kind.includes('dusk')?[0xe9c9b8,1.4,0xf1bd8c,1.6,0xd5c8b4]:[0xe9e7cc,2,0xffe0ab,2.1,0xd4d9ca];
-    sky.color.setHex(settings[0]);sky.intensity=settings[1];sun.color.setHex(settings[2]);sun.intensity=settings[3];scene.background.setHex(settings[4]);scene.fog.color.setHex(settings[4]);host.dataset.light=kind.split(' ').pop();
-  }
-  function render(now){raf=0;if(document.hidden||contextLost)return;raf=requestAnimationFrame(render);if(now-lastRender<32)return;
-    const dt=now-lastRender;lastRender=now;syncLight();
-    if(motion){const t=Math.min(1,(now-motion.start)/1800),ease=t*t*(3-2*t);camera.position.lerpVectors(motion.from,motion.to,ease);aim.lerpVectors(motion.aim,motion.target,ease);if(t===1)motion=null;}
-    else if(seated){camera.position.copy(eye);if(!reduced.matches)camera.position.y+=Math.sin(now/10000*Math.PI*2)*.006;aim.copy(lookingTarget());}
-    camera.lookAt(aim);renderer.render(scene,camera);if(!seated&&!motion&&!host.dataset.projected)updateProjections();
-    // Reduce resolution on sustained slow devices, never below device ratio 1.
-    if(++frames>15){if(dt>65)slowFrames++;if(frames>=75){if(slowFrames>30&&renderer.getPixelRatio()>1)renderer.setPixelRatio(Math.max(1,renderer.getPixelRatio()-.25));frames=0;slowFrames=0;}}
-    host.dataset.frames=String(Number(host.dataset.frames||0)+1);host.dataset.eyeHeight=camera.position.y.toFixed(3);host.dataset.yaw=String(yaw);host.dataset.pitch=String(pitch);host.dataset.pixelRatio=String(renderer.getPixelRatio());host.dataset.transition=String(!!motion);
-  }
-  const ray=new THREE.Raycaster(),pointer=new THREE.Vector2();
-  function projectedSeat(id){const p=coords[id-1].clone().project(camera),r=canvas.getBoundingClientRect();return{x:(p.x+1)*r.width/2+r.left,y:(1-p.y)*r.height/2+r.top};}
-  function updateProjections(){for(let id=1;id<=108;id++){const p=projectedSeat(id);seats[id-1].dataset.screenX=p.x.toFixed(2);seats[id-1].dataset.screenY=p.y.toFixed(2);}host.dataset.projected='true';}
-  function pick(x,y){const r=canvas.getBoundingClientRect();pointer.set((x-r.left)/r.width*2-1,-(y-r.top)/r.height*2+1);ray.setFromCamera(pointer,camera);const hits=ray.intersectObjects(cushions,false);if(hits[0])return hits[0].object.userData.seat;
-    // Small touch tolerance, with nearest seat winning; never picks a figure.
-    let closest=0,distance=10;for(let id=1;id<=108;id++){const p=projectedSeat(id),d=Math.hypot(x-p.x,y-p.y);if(d<distance){distance=d;closest=id;}}return closest;
-  }
-  let drag=null;
-  canvas.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,startX:e.clientX,startY:e.clientY};canvas.setPointerCapture(e.pointerId);});
-  canvas.addEventListener('pointermove',e=>{if(!drag)return;if(seated&&!motion){yaw=THREE.MathUtils.clamp(yaw-(e.clientX-drag.x)*.004,-Math.PI*2/9,Math.PI*2/9);pitch=THREE.MathUtils.clamp(pitch+(e.clientY-drag.y)*.003,-Math.PI/12,Math.PI/12);}drag.x=e.clientX;drag.y=e.clientY;});
-  canvas.addEventListener('pointerup',e=>{if(drag&&!seated&&Math.hypot(e.clientX-drag.startX,e.clientY-drag.startY)<12){const id=pick(e.clientX,e.clientY);if(id)onSelect(id);}drag=null;});canvas.addEventListener('pointercancel',()=>{drag=null;});
-  canvas.addEventListener('keydown',e=>{if(!seated)return;const delta=.06;if(e.key==='ArrowLeft')yaw=Math.max(-Math.PI*2/9,yaw-delta);else if(e.key==='ArrowRight')yaw=Math.min(Math.PI*2/9,yaw+delta);else if(e.key==='ArrowUp')pitch=Math.min(Math.PI/12,pitch+delta);else if(e.key==='ArrowDown')pitch=Math.max(-Math.PI/12,pitch-delta);else return;e.preventDefault();});
-  document.addEventListener('visibilitychange',()=>{if(document.hidden){cancelAnimationFrame(raf);raf=0;}else if(!raf&&!contextLost){lastRender=0;raf=requestAnimationFrame(render);}});
-  canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();contextLost=true;cancelAnimationFrame(raf);document.body.classList.remove('webgl-ready');document.querySelector('.hall-art').src='assets/hall.jpg';host.hidden=true;});
-  window.addEventListener('resize',resize);reduced.addEventListener('change',()=>{if(reduced.matches&&motion){camera.position.copy(motion.to);aim.copy(motion.target);motion=null;}});
-  resize();camera.position.copy(overview);aim.copy(overviewAim);camera.lookAt(aim);renderer.render(scene,camera);if(!seated&&!motion&&!host.dataset.projected)updateProjections();raf=requestAnimationFrame(render);host.dataset.view='overview';host.dataset.readyAt=performance.now().toFixed(0);host.dataset.initMs=(performance.now()-bootStart).toFixed(0);host.dataset.ready='true';
-  // Projection metadata also makes every semantic seat keyboard reachable and testable.
-  for(const [i,button]of seats.entries())button.addEventListener('focus',()=>{button.textContent=`第 ${i+1} 席`;});
-  return {enter(id){select(id,true);move(true);},leave(){halo.visible=false;move(false);},remember(id){if(Number.isInteger(id)&&id>=1&&id<=108)select(id);},projectedSeat,decorativeSeats};
-}
+setInterval(()=>tick(),200);document.addEventListener('visibilitychange',()=>{document.body.classList.toggle('motion-paused',document.hidden);if(document.hidden)$('guideVideo').pause();else{tick(true);renderLamp();}});window.addEventListener('pageshow',()=>tick(true));reduced.addEventListener('change',()=>tick(true));
+if('mediaSession'in navigator){navigator.mediaSession.setActionHandler('play',()=>{if(session&&sound==='music')tick(true);});navigator.mediaSession.setActionHandler('pause',()=>setSound('silent',presentation));}
+function renderLamp(){const strength=lamp&&Number.isFinite(lamp.created)?lampStrength(lamp.created):0;$('lampButton').style.setProperty('--lamp-opacity',.15+.85*strength);$('lampText').textContent=t(strength>0?'lampLit':'lampDim');}
+setInterval(renderLamp,60000);$('lampButton').onclick=()=>{closeCorner();$('wish').value=lamp?.wish||'';$('wishCount').textContent=Array.from($('wish').value).length+' / 20';$('lampMessage').textContent=t(lamp?'lampMessage':'lampEmpty');$('lampDialog').showModal();};$('wish').oninput=()=>{$('wish').value=Array.from($('wish').value).slice(0,20).join('');$('wishCount').textContent=Array.from($('wish').value).length+' / 20';};$('lampForm').onsubmit=event=>{event.preventDefault();lamp={wish:Array.from($('wish').value.trim()).slice(0,20).join(''),created:Date.now()};store.set('lamp',lamp);renderLamp();$('lampDialog').close();};
+$('helpButton').onclick=()=>{closeCorner();$('help').showModal();};for(const button of document.querySelectorAll('[data-close]'))button.onclick=()=>$(button.dataset.close).close();
+$('help').addEventListener('close',()=>store.set('welcomed',true));$('help').addEventListener('cancel',()=>store.set('welcomed',true));
+document.addEventListener('keydown',event=>{if(event.key==='Escape')closeCorner();});
+let drag=null;function setPan(value){const max=Math.max(0,($('panoramaPlane').getBoundingClientRect().width-innerWidth)/2);pan=Math.max(-max,Math.min(max,value));$('panoramaPlane').style.setProperty('--pan',pan+'px');}
+$('panorama').addEventListener('pointerdown',event=>{if(event.target.closest('button'))return;drag={x:event.clientX,pan};$('panorama').setPointerCapture(event.pointerId);});$('panorama').addEventListener('pointermove',event=>{if(drag)setPan(drag.pan+event.clientX-drag.x);});for(const type of ['pointerup','pointercancel'])$('panorama').addEventListener(type,()=>{drag=null;});$('panorama').addEventListener('keydown',event=>{if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();setPan(pan+(event.key==='ArrowLeft'?40:-40));}});window.addEventListener('resize',()=>setPan(pan));
+for(let i=0;i<16;i++){const particle=document.createElement('i');particle.style.left=(15+(i*37)%70)+'%';particle.style.top=(20+(i*23)%60)+'%';particle.style.animationDelay=(-i*1.9)+'s';particle.style.animationDuration=(18+i%6*3)+'s';$('dust').append(particle);}
+translate();renderLamp();updateSoundStatus();if(!store.get('welcomed',false))$('help').showModal();
+if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').then(()=>{$('offlineStatus').textContent=t(offlineKey='offlineReady');}).catch(()=>{$('offlineStatus').textContent=t(offlineKey='offlineError');});
