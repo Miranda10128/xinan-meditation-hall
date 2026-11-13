@@ -1,0 +1,10 @@
+preview-*.log
+refine*.py
+guide-preview.py
+
+*.log
+.shared-server.pid
+assets/narration/build/
+assets/narration/*-raw.mp3
+assets/narration/voice-test.mp3
+_site/

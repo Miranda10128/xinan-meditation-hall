@@ -14,3 +14,11 @@
 替换方式：真实素材用任务包原文件名直接替换，路径不变；替换后递增 sw.js 的 VERSION，更新缓存。音频时长应与原场次段匹配；qing.mp3 仅含单声。收束语录音中的 [磬声] 请留空，由播放器在全场结束时单独播放 qing.mp3，避免重复敲磬。
 
 按已确认的 60 分钟方案，前七段末尾 10 秒切到音乐桥，59:00–60:00 静候起身。因此录音末尾的过渡句需在音乐桥前完成，完整录音的最后 10 秒不会播放。
+
+## 晨光木堂新版本素材（2026-11-13）
+
+- morning-garden、morning-wood、morning-wood-v2、morning-linen、morning-plant、morning-plaster、morning-rattan：为本项目通过图像生成工具制作的场景素材。运行时使用 WebP，PNG 原稿保留；morning-shadow 为未采用的试验素材。
+- narration/cue-00 至 cue-11：本项目原创《自然呼吸与安住》文本，经 OpenAI gpt-4o-mini-tts、marin 声线制作的 AI 配音，非真人录音。manifest.json 记录实际时长；script.json 记录文本及语气要求。连续课程含静默段，支持5/10/20/30分钟。未声称获得真人导师认证或完成真人逐句听审。
+- vendor/three-addons：Three.js 官方 r160 examples/jsm 的运行依赖，MIT 许可证见该目录 LICENSE。脚本 scripts/vendor_ssao.py 可从固定官方标签重新获取并将核心模块路径改为本地引用。来源：https://github.com/mrdoob/three.js/tree/r160/examples/jsm 。目前使用 GTAOPass、EffectComposer、RenderPass、OutputPass 及 BufferGeometryUtils；SSAO 依赖为对照试验保留。项目侧正常深度遮蔽阶段会排除透明点击热区和植物贴片；单遍降噪取固定噪声通道以兼容现有显卡驱动。
+
+原音乐与单磬沿用已有项目的来源记录。新界面不播放旧 seg01–seg06 静音占位，也不调用浏览器 SpeechSynthesis。

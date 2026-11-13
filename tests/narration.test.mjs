@@ -1,0 +1,4 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {narration,planNarration} from '../narration.mjs';
+for(const seconds of [300,600,1200,1800,70,130])test(`spoken clips fit inside ${seconds} seconds with room for silence`,()=>{const p=planNarration(narration.cues,seconds);assert.ok(p.length>0);assert.equal(p[0].at,0);for(let i=0;i<p.length;i++){assert.ok(p[i].end<=seconds);assert.ok(p[i].end-p[i].at>=p[i].duration-.001);if(i)assert.ok(p[i].at>=p[i-1].end)}assert.equal(p.at(-1).id,11);assert.ok(Math.abs(p.at(-1).end-(seconds-3))<.001)});
+test('a session too short for one spoken closing clip remains silent',()=>assert.deepEqual(planNarration(narration.cues,3),[]));
+test('long practice leaves more silence rather than slowing speech',()=>{const short=planNarration(narration.cues,300),long=planNarration(narration.cues,1200);assert.deepEqual(short.map(c=>c.duration),long.map(c=>c.duration));assert.ok(long[5].at>short[5].at)});
