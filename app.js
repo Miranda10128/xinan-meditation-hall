@@ -6,7 +6,7 @@ import {OutputPass} from './assets/vendor/three-addons/postprocessing/OutputPass
 import { config } from './config.js';
 import { formatTime } from './engine.mjs';
 import { narration, planNarration } from './narration.mjs';
-import {createIllustratedPerson,prepareCharacters} from './illustrated-people.mjs';
+import {createIllustratedPerson,prepareCharacters,demoIdentities} from './illustrated-people.mjs';
 import {createPottedPlant,createUnderstory} from './plants.mjs';
 import {connectPresence} from './presence.mjs';
 import {projectSeats} from './seat-projection.mjs';
@@ -89,7 +89,7 @@ function buildScene(){scene=new THREE.Scene();scene.background=new THREE.Color('
  // A low round island places the guide among the circle, without a front-row stage.
  mesh(new THREE.CylinderGeometry(1.35,1.42,.22,64),wood,0,.19,hallCenter.z);
  const guideCushion=cushion(0,hallCenter.z,1.2);guideCushion.position.y=.36;
- const teacher=person('#eee6d9',true,2);teacher.position.set(0,.48,hallCenter.z);teacher.rotation.y=Math.PI;scene.add(teacher);people.push(teacher);
+ const teacher=createIllustratedPerson('white',true,'guide');teacher.position.set(0,.48,hallCenter.z);teacher.rotation.y=Math.PI;scene.add(teacher);people.push(teacher);
  const bowl=mesh(new THREE.SphereGeometry(.16,28,16,0,Math.PI*2,0,Math.PI/2),material('#a07a35',{metalness:.5,roughness:.38}),.93,.47,hallCenter.z+.45);bowl.rotation.x=Math.PI;
  beam([.95,.33,hallCenter.z+.68],[1.2,.34,hallCenter.z+.68],.018,woodDark);
  for(const x of [-6,6]){plant(x*.85,-10,1.2);lantern(x*.68,-9.8,.8,.62)}
@@ -120,7 +120,7 @@ function cushion(x,z,size=1.2){const shape=new THREE.Shape(),w=size/2,h=size*.42
 function lantern(x,z,height,base=0){const frame=woodDark;box(.48,.06,.48,frame,x,base+.08,z);box(.39,height,.39,material('#fff0c5',{emissive:'#ffc772',emissiveIntensity:.42,transparent:true,opacity:.9}),x,base+height/2+.1,z);for(const dx of [-.22,.22])for(const dz of [-.22,.22])box(.035,height+.1,.035,frame,x+dx,base+height/2+.1,z+dz);box(.49,.05,.49,frame,x,base+height+.12,z);}
 function plant(x,z,s){const potted=Math.abs(x)<7,model=potted?createPottedPlant(leafTexture,Math.round(Math.abs(x+z))):createUnderstory(leafTexture,Math.round(Math.abs(x+z)));model.position.set(x,potted?(z>8?-.32:.08):-.58,z);model.scale.setScalar(potted?s*(z<0?1.05:.85):s);model.rotation.y=x<0?.35:-.35;scene.add(model);return model;}
 
-function person(color,seated,variant){return createIllustratedPerson(variant%2?'blue':'white',seated);}
+function person(color,seated,variant){return createIllustratedPerson(variant%2?'blue':'white',seated,demoIdentities[variant]);}
 function cameraTo(position,target,duration=1800,onComplete=null){transition={onComplete,from:camera.position.clone(),to:new THREE.Vector3(...position),lookFrom:currentTarget.clone(),lookTo:new THREE.Vector3(...target),started:performance.now(),duration:reduced?0:duration};}
 const currentTarget=new THREE.Vector3(0,1.8,7);const clock=new THREE.Clock();let lastFrame=0;
 function animate(){requestAnimationFrame(animate);if(document.hidden)return;const frameNow=performance.now();if(frameNow-lastFrame<40)return;lastFrame=frameNow;const t=clock.getElapsedTime();if(walk){standing.visible=false;const q=walk.duration===0?1:Math.min(1,(performance.now()-walk.started)/walk.duration),s=q*q*(3-2*q);standing.position.lerpVectors(walk.from,walk.to,s);if(!reduced){standing.position.y=.1+Math.abs(Math.sin(q*Math.PI*12))*.018;standing.userData.poseWalking?.(q*Math.PI*12,Math.sin(Math.PI*q));}standing.rotation.y=Math.atan2(-(walk.to.x-walk.from.x),-(walk.to.z-walk.from.z));if(q===1){standing.userData.poseWalking?.(0,0);renderer.shadowMap.needsUpdate=true;standing.visible=false;standing.rotation.y=0;walk=null;}}if(transition){const a=transition.duration===0?1:Math.min(1,(performance.now()-transition.started)/transition.duration),s=a*a*(3-2*a);camera.position.lerpVectors(transition.from,transition.to,s);currentTarget.lerpVectors(transition.lookFrom,transition.lookTo,s);camera.lookAt(currentTarget);if(a===1){const complete=transition.onComplete;transition=null;if(complete)complete();else if(state.phase==='entering')setPhase('choosing');updateLabels()}}else if(state.phase==='seated'&&state.seat){look+=(lookTarget-look)*.04;const seat=state.seat;if(state.third){currentTarget.set(seat.x,.75,seat.z)}else{const angle=Math.atan2(hallCenter.x-seat.x,hallCenter.z-seat.z)-look;currentTarget.set(seat.x+Math.sin(angle)*12,1.2,seat.z+Math.cos(angle)*12)}camera.lookAt(currentTarget)}
