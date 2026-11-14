@@ -1,6 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {breathingFrame} from '../breathing.mjs';
-import {createMusicPlaylist,meditationTracks} from '../music-playlist.mjs';
+import {createMusicPlaylist,meditationTracks,bridgeMediaPause} from '../music-playlist.mjs';
 import {RoomStore} from '../server/rooms.mjs';
 import {declutterSeatLabels} from '../seat-projection.mjs';
 import {createCurtains} from '../atmosphere.mjs';
@@ -14,6 +14,18 @@ test('breath word, countdown and expansion share the same four-in six-out clock'
  assert.deepEqual(breathingFrame(2371),breathingFrame(2371));assert.equal(breathingFrame(-1).remaining,4);
 });
 class FakeAudio{constructor(){this.events={};this.src='';this.loop=true;}pause(){}addEventListener(name,fn){this.events[name]=fn}}
+class EventAudio extends FakeAudio{constructor(){super();this.paused=false}pause(){if(this.paused)return;this.paused=true;queueMicrotask(()=>this.events.pause?.())}}
+test('external audio pauses notify the practice, while application pauses do not',async()=>{
+ const audio=new EventAudio();let interruptions=0;const pause=bridgeMediaPause(audio,()=>interruptions++);
+ pause();await Promise.resolve();assert.equal(interruptions,0);
+ pause();audio.paused=false;audio.pause();await Promise.resolve();assert.equal(interruptions,1);
+ audio.paused=false;audio.pause();await Promise.resolve();assert.equal(interruptions,2);
+});
+test('playlist track changes use the guarded pause instead of appearing as interruptions',async()=>{
+ const audio=new EventAudio();let interruptions=0;const pause=bridgeMediaPause(audio,()=>interruptions++);
+ const playlist=createMusicPlaylist({audio,pauseAudio:pause});playlist.beginVisit();await Promise.resolve();audio.paused=false;playlist.next();await Promise.resolve();assert.equal(interruptions,0);
+ audio.paused=false;audio.pause();await Promise.resolve();assert.equal(interruptions,1);
+});
 test('music changes between visits and finishes each shuffled set before repeating',()=>{
  const audio=new FakeAudio();let last='fresh-air';const playlist=createMusicPlaylist({audio,random:()=>.2,getLast:()=>last,remember:id=>last=id});
  const first=playlist.beginVisit();assert.notEqual(first.id,'fresh-air');assert.equal(audio.loop,false);
