@@ -22,3 +22,5 @@
 - vendor/three-addons：Three.js 官方 r160 examples/jsm 的运行依赖，MIT 许可证见该目录 LICENSE。脚本 scripts/vendor_ssao.py 可从固定官方标签重新获取并将核心模块路径改为本地引用。来源：https://github.com/mrdoob/three.js/tree/r160/examples/jsm 。目前使用 GTAOPass、EffectComposer、RenderPass、OutputPass 及 BufferGeometryUtils；SSAO 依赖为对照试验保留。项目侧正常深度遮蔽阶段会排除透明点击热区和植物贴片；单遍降噪取固定噪声通道以兼容现有显卡驱动。
 
 原音乐与单磬沿用已有项目的来源记录。新界面不播放旧 seg01–seg06 静音占位，也不调用浏览器 SpeechSynthesis。
+
+- morning-leaf.webp：为本项目新生成的蕉叶表面纹理；用于plants.mjs中的真实曲面叶片，非整株植物照片。PNG原稿仅保留本机，不进入手机发布包。近景花盆及植株使用自建三维几何，远景贴片继续保留。

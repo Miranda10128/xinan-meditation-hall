@@ -2,5 +2,5 @@
   "name":"xinan-morning-hall",
   "private":true,
   "type":"module",
-  "scripts":{"dev":"node preview.mjs","test":"node --test tests/*.test.mjs","check":"node --check app.js && node --check people.mjs && node --check presence.mjs && node --check narration.mjs && node --check server.mjs && node --check sw.js","start":"node server.mjs"}
+  "scripts":{"dev":"node preview.mjs","test":"node --test tests/*.test.mjs","check":"node --check app.js && node --check people.mjs && node --check plants.mjs && node --check presence.mjs && node --check narration.mjs && node --check server.mjs && node --check sw.js","start":"node server.mjs"}
 }
