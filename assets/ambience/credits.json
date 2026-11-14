@@ -1,0 +1,52 @@
+[
+  {
+    "id": "birds",
+    "author": "kvgarlic; edited by Porrumentzio",
+    "license": "CC0 1.0",
+    "source": "https://freesound.org/people/kvgarlic/sounds/156826/",
+    "distribution": "https://raw.githubusercontent.com/rafaelmardojai/blanket/bbc88ed3b9dfa8b21805d77286f3183abf88f36f/data/resources/sounds/birds.ogg",
+    "changes": "First up to50 seconds; rotated/crossfaded loop; loudness normalized; MP3 encoded.",
+    "duration": 49.2,
+    "bytes": 788314
+  },
+  {
+    "id": "wind",
+    "author": "felix.blume; edited by Porrumentzio",
+    "license": "CC0 1.0",
+    "source": "https://freesound.org/people/felix.blume/sounds/217506/",
+    "distribution": "https://raw.githubusercontent.com/rafaelmardojai/blanket/bbc88ed3b9dfa8b21805d77286f3183abf88f36f/data/resources/sounds/wind.ogg",
+    "changes": "First up to50 seconds; rotated/crossfaded loop; loudness normalized; MP3 encoded.",
+    "duration": 13.94,
+    "bytes": 224069
+  },
+  {
+    "id": "water",
+    "author": "gluckose",
+    "license": "CC0 1.0",
+    "source": "https://freesound.org/people/gluckose/sounds/333987/",
+    "distribution": "https://raw.githubusercontent.com/rafaelmardojai/blanket/bbc88ed3b9dfa8b21805d77286f3183abf88f36f/data/resources/sounds/stream.ogg",
+    "changes": "First up to50 seconds; rotated/crossfaded loop; loudness normalized; MP3 encoded.",
+    "duration": 49.2,
+    "bytes": 788314
+  },
+  {
+    "id": "rain",
+    "author": "alex36917; edited by Porrumentzio",
+    "license": "CC BY 4.0",
+    "source": "https://freesound.org/people/alex36917/sounds/524605/",
+    "distribution": "https://raw.githubusercontent.com/rafaelmardojai/blanket/bbc88ed3b9dfa8b21805d77286f3183abf88f36f/data/resources/sounds/rain.ogg",
+    "changes": "First up to50 seconds; rotated/crossfaded loop; loudness normalized; MP3 encoded.",
+    "duration": 49.2,
+    "bytes": 788314
+  },
+  {
+    "id": "leaves",
+    "author": "Stek59; edited by Mateus Felipe",
+    "license": "CC0 1.0",
+    "source": "https://freesound.org/people/Stek59/sounds/457318/",
+    "distribution": "https://raw.githubusercontent.com/mateusfg7/Noisekun/d32024c67aba7c0577e1609944af00b9df1b7775/.github/assets/sounds/leaves.ogg",
+    "changes": "First up to50 seconds; rotated/crossfaded loop; loudness normalized; MP3 encoded.",
+    "duration": 39.459,
+    "bytes": 632415
+  }
+]

@@ -31,6 +31,8 @@ function buildPlant(leafMap,type){
   for(let y=0;y<rows;y++)for(let x=0;x<columns;x++){const a=y*(columns+1)+x,b=a+columns+1;indices.push(a,a+1,b,b,a+1,b+1)}
   const leaf=new T.BufferGeometry();leaf.setAttribute('position',new T.Float32BufferAttribute(positions,3));leaf.setAttribute('uv',new T.Float32BufferAttribute(uv,2));leaf.setIndex(indices);leaf.computeVertexNormals();piece(leaf,leafMat,rotation);
  }
- for(const [material,geometries]of parts){const geometry=mergeGeometries(geometries,false);for(const g of geometries)g.dispose();const mesh=new T.Mesh(geometry,material);mesh.castShadow=true;mesh.receiveShadow=true;root.add(mesh);}
+ for(const [material,geometries]of parts){const geometry=mergeGeometries(geometries,false);for(const g of geometries)g.dispose();const mesh=new T.Mesh(geometry,material);mesh.userData.surface=material===clayMat?'pot':material===soilMat?'soil':material===stemMat?'stem':'leaf';mesh.castShadow=true;mesh.receiveShadow=true;root.add(mesh);}
  return root;
 }
+
+export function createUnderstory(leafMap,variant=0){const plant=createPottedPlant(leafMap,variant);for(const mesh of [...plant.children])if(['pot','soil'].includes(mesh.userData.surface))plant.remove(mesh);plant.position.y=-.59;const root=new T.Group();root.add(plant);return root;}

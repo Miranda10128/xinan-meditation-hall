@@ -31,7 +31,7 @@ export function createHallServer({store=new RoomStore(),root=ROOT}={}){
   let file=path.resolve(root,'.'+decoded);if(file!==root&&!file.startsWith(root+path.sep)){res.writeHead(403).end();return}
   // Only the application and its runtime assets are served, never build scripts or private files.
   const relative=path.relative(root,file).replaceAll('\\','/');if(relative&&relative.includes('/')&&!relative.startsWith('assets/')){res.writeHead(404).end();return}
-  const allowed=new Set(['','index.html','style.css','app.js','config.js','engine.mjs','narration.mjs','people.mjs','plants.mjs','presence.mjs','seat-projection.mjs','sw.js','manifest.webmanifest']);if(!relative.startsWith('assets/')&&!allowed.has(relative)){res.writeHead(404).end();return}
+  const allowed=new Set(['','index.html','style.css','app.js','config.js','engine.mjs','narration.mjs','people.mjs','illustrated-people.mjs','circle-layout.mjs','plants.mjs','atmosphere.mjs','soundscape.mjs','seasons.mjs','presence.mjs','seat-projection.mjs','sw.js','manifest.webmanifest']);if(!relative.startsWith('assets/')&&!allowed.has(relative)){res.writeHead(404).end();return}
   if(file===root)file=path.join(root,'index.html');let stat;try{stat=fs.statSync(file)}catch{res.writeHead(404).end();return}if(!stat.isFile()){res.writeHead(404).end();return}
   if(!MIME[path.extname(file)]||relative.includes('/build/')){res.writeHead(404).end();return}res.setHeader('Content-Type',MIME[path.extname(file)]);res.setHeader('Cache-Control','no-cache');
   if(path.basename(file)==='index.html'){const html=fs.readFileSync(file,'utf8').replace('data-server-presence="false"','data-server-presence="true"');res.writeHead(200);res.end(req.method==='HEAD'?'':html);return}
