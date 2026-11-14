@@ -24,3 +24,5 @@
 原音乐与单磬沿用已有项目的来源记录。新界面不播放旧 seg01–seg06 静音占位，也不调用浏览器 SpeechSynthesis。
 
 - morning-leaf.webp：为本项目新生成的蕉叶表面纹理；用于plants.mjs中的真实曲面叶片，非整株植物照片。PNG原稿仅保留本机，不进入手机发布包。近景花盆及植株使用自建三维几何，远景贴片继续保留。
+
+Forest floor atlas: generated with built-in image_gen for this project. Four equal top-down diffuse ground tiles: spring moss and fresh shoots, summer darker moss/soil/pebbles, autumn muted fallen leaves, winter light snow. Prompt requested photorealistic seamless albedo, consistent scale, no horizon, text, props or directional cast shadows. Original atlas retained locally at design/forest-floor-atlas.png; runtime assets forest-floor-{spring,summer,autumn,winter}.webp, 768×768, total843810 bytes. These are generated visual materials, not photographs of a real retreat.

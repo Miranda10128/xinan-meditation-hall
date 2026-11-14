@@ -4,7 +4,17 @@ export const seasons={
  autumn:{label:'秋 · 落叶',file:'assets/forest-autumn.webp',fog:'#a49b7e',ground:'#897552',sky:'#f1e3c8',water:'#8a9880'},
  winter:{label:'冬 · 薄雪',file:'assets/forest-winter.webp',fog:'#bdc6c4',ground:'#cdd2ca',sky:'#e1e9eb',water:'#839ba2'}
 };
+for(const [id,season]of Object.entries(seasons))season.floorFile=`assets/forest-floor-${id}.webp`;
+
+// A season is applied only when both its horizon and nearby ground are ready.
+export async function loadSeasonAssets(palette,loadTexture){
+ const results=await Promise.allSettled([loadTexture(palette.file),loadTexture(palette.floorFile)]);
+ const failed=results.find(result=>result.status==='rejected');
+ if(failed){for(const result of results)if(result.status==='fulfilled')result.value.dispose?.();throw failed.reason;}
+ const [garden,floor]=results.map(result=>result.value);
+ return {garden,floor,dispose(){garden.dispose?.();floor.dispose?.()}};
+}
 export function createSeasonController({initial='summer',load,apply,onError=()=>{}}){
  let current=seasons[initial]?initial:'summer',request=0;
- return {get current(){return current},async select(id){if(!seasons[id])return false;const token=++request;if(id===current)return true;try{const texture=await load(seasons[id].file);if(token!==request){texture.dispose?.();return false}apply(id,seasons[id],texture);current=id;return true}catch(error){if(token===request)onError(error);return false}}};
+ return {get current(){return current},async select(id){if(!seasons[id])return false;const token=++request;if(id===current)return true;try{const texture=await load(seasons[id].file,seasons[id]);if(token!==request){texture.dispose?.();return false}apply(id,seasons[id],texture);current=id;return true}catch(error){if(token===request)onError(error);return false}}};
 }

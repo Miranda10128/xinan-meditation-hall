@@ -10,9 +10,9 @@ import {createIllustratedPerson,prepareCharacters,demoIdentities} from './illust
 import {createPottedPlant,createUnderstory} from './plants.mjs';
 import {connectPresence} from './presence.mjs';
 import {projectSeats} from './seat-projection.mjs';
-import {createCurtains,buildCorridor,createStream,createRain} from './atmosphere.mjs';
+import {createCurtains,buildCorridor,createStream,createRain,createForestGround,forestGroundHeight} from './atmosphere.mjs';
 import {createSoundscape,natureTracks} from './soundscape.mjs';
-import {seasons,createSeasonController} from './seasons.mjs';
+import {seasons,createSeasonController,loadSeasonAssets} from './seasons.mjs';
 import {hallCenter,circularSeats,seatView} from './circle-layout.mjs';
 const $=id=>document.getElementById(id), reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const state={phase:'arrival',seat:null,mode:'still',sound:false,paused:false,minutes:20,breathAt:0,start:0,elapsed:0,ended:false,third:false,outfit:'white',season:'summer'};
@@ -72,9 +72,9 @@ let wood,woodDark,linen,leafmat,skin,avatarClothes,plantTexture,clothTexture,lea
 function buildScene(){scene=new THREE.Scene();scene.background=new THREE.Color('#e8d9b8');scene.fog=new THREE.Fog('#e8d9b8',29,73);camera=new THREE.PerspectiveCamera(innerWidth<600?66:56,innerWidth/innerHeight,.3,90);camera.position.set(0,2.6,28.5);camera.lookAt(0,1.8,7);
  const manager=new THREE.LoadingManager();$('enter').disabled=true;manager.onLoad=()=>{renderer.shadowMap.needsUpdate=true;renderFrame();document.body.dataset.sceneReady='true';$('enter').disabled=false;$('loading').style.opacity='0';setTimeout(()=>$('loading').hidden=true,reduced?0:700)};manager.onError=()=>toast('部分场景素材暂未加载，可以稍后刷新再试。');const loader=new THREE.TextureLoader(manager);prepareCharacters(loader);leafTexture=loader.load('assets/morning-leaf.webp');leafTexture.colorSpace=THREE.SRGBColorSpace;leafTexture.anisotropy=4;plantTexture=loader.load('assets/morning-plant.webp');plantTexture.colorSpace=THREE.SRGBColorSpace;const woodTex=loader.load('assets/morning-wood-v2.webp');woodTex.colorSpace=THREE.SRGBColorSpace;woodTex.wrapS=woodTex.wrapT=THREE.RepeatWrapping;woodTex.repeat.set(1,4);woodTex.anisotropy=4;wood=material('#9a8270',{map:woodTex,bumpMap:woodTex,bumpScale:.018,roughness:.72});woodDark=material('#705542',{map:woodTex,bumpMap:woodTex,bumpScale:.018});const linenTex=loader.load('assets/morning-linen.webp');linenTex.colorSpace=THREE.SRGBColorSpace;linenTex.wrapS=linenTex.wrapT=THREE.RepeatWrapping;linenTex.repeat.set(2,2);clothTexture=linenTex;linen=material('#e6dfd2',{map:linenTex,bumpMap:linenTex,bumpScale:.018});leafmat=material('#718445',{side:THREE.DoubleSide});skin=material('#dab28a');avatarClothes=material('#f1e7d6');
  hemisphere=new THREE.HemisphereLight(seasons[state.season].sky,'#686252',1.65);scene.add(hemisphere);const sun=new THREE.DirectionalLight('#f7e9d8',1.25);sun.position.set(-18,7,7);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-20,right:20,top:22,bottom:-18,near:1,far:55});sun.shadow.normalBias=.005;sun.shadow.bias=-.00005;sun.shadow.radius=3;scene.add(sun);scene.add(new THREE.AmbientLight('#f8e4c3',.35));const teacherFill=new THREE.PointLight('#ffdfaf',5,9,2);teacherFill.position.set(0,2.5,-1.5);scene.add(teacherFill);const changingFill=new THREE.PointLight('#ffe7d3',5,8,2);changingFill.position.set(-1.4,2.8,19.2);scene.add(changingFill);
- // The room and characters are actual spatial meshes, not a flattened concept image.
+ // Spatial architecture surrounds the four-view painted people.
  const garden=loader.load(seasons[state.season].file,()=>{applySeasonPalette(state.season);renderFrame()});garden.colorSpace=THREE.SRGBColorSpace;const gardenMat=new THREE.MeshBasicMaterial({map:garden,side:THREE.DoubleSide,toneMapped:false});gardenMaterial=gardenMat;mesh(new THREE.PlaneGeometry(62,30),gardenMat,0,11,-28);let p=mesh(new THREE.PlaneGeometry(68,29),gardenMat,-24,10,0);p.rotation.y=Math.PI/2;p=mesh(new THREE.PlaneGeometry(68,29),gardenMat,24,10,0);p.rotation.y=-Math.PI/2;
- terrainMaterial=material(seasons[state.season].ground);box(65,.2,70,terrainMaterial,0,-.7,0);box(15,.45,20,woodDark,0,-.22,-2);box(5,.25,18,wood,0,-.15,17);
+ const groundTexture=prepareForestFloor(loader.load(seasons[state.season].floorFile));terrainMaterial=material('#ffffff',{map:groundTexture,bumpMap:groundTexture,bumpScale:.018,roughness:1});createForestGround(scene,terrainMaterial);box(15,.45,20,woodDark,0,-.22,-2);box(5,.25,18,wood,0,-.15,17);
  // Individual broad floor boards keep the timber grain and subtle seams visible.
  const floorTexture=loader.load('assets/morning-wood-v2.webp');floorTexture.colorSpace=THREE.SRGBColorSpace;floorTexture.wrapS=floorTexture.wrapT=THREE.RepeatWrapping;floorTexture.rotation=Math.PI/2;floorTexture.repeat.set(1,1);floorTexture.anisotropy=8;const floorWood=wood.clone();floorWood.map=floorTexture;floorWood.bumpMap=floorTexture;floorWood.bumpScale=.002;for(let z=-11.6;z<8;z+=.6){const board=box(14.4,.07,.588,floorWood,0,.04,z);board.castShadow=false;board.userData.aoSkip=true;}const floorProxy=mesh(new THREE.PlaneGeometry(14.4,20),floorWood,0,.075,-2);floorProxy.rotation.x=-Math.PI/2;floorProxy.visible=false;floorProxy.castShadow=false;floorProxy.userData.aoProxy=true;
  for(let z=8;z<26;z+=.52)box(4.92,.05,.505,wood,0,.02,z);
@@ -93,15 +93,13 @@ function buildScene(){scene=new THREE.Scene();scene.background=new THREE.Color('
  const bowl=mesh(new THREE.SphereGeometry(.16,28,16,0,Math.PI*2,0,Math.PI/2),material('#a07a35',{metalness:.5,roughness:.38}),.93,.47,hallCenter.z+.45);bowl.rotation.x=Math.PI;
  beam([.95,.33,hallCenter.z+.68],[1.2,.34,hallCenter.z+.68],.018,woodDark);
  for(const x of [-6,6]){plant(x*.85,-10,1.2);lantern(x*.68,-9.8,.8,.62)}
- for(const z of [7,11.5,16,21,25]){lantern(-2.75,z,.65);lantern(2.75,z,.65)}
+ for(const z of [7,11.5,16,21,25]){lantern(-2.12,z,.65);lantern(2.12,z,.65)}
  for(const side of [-1,1])for(const z of [-9,-4,1,6,12,17])plant(side*(8.5+(z%3)*.2),z,1.4+(z%4)*.12);
- // Raised garden beds frame the approach and keep the pavilion grounded.
- const stone=material('#78796a'),soil=material('#5b6141');
+ // Forest understory grows directly beside the raised wooden approach.
+ const stone=material('#78796a');
  for(const side of [-1,1]){
-  box(1.8,.20,20.8,stone,side*8.25,-.52,-1.8);box(1.64,.06,20.5,soil,side*8.25,-.38,-1.8);
-  box(3.25,.20,11.7,stone,side*4.32,-.52,13.1);box(3.10,.06,11.5,soil,side*4.32,-.38,13.1);
   for(const z of [9.4,12.8,16.3])plant(side*(3.65+(z%2)*.35),z,1.7);
-  for(let i=0;i<15;i++){const z=8+i*.72;ellipsoid(stone,side*(2.78+(i%3)*.07),.06,z,.12,.06,.10,scene);}
+  for(let i=0;i<15;i++){const z=8+i*.72;const x=side*(2.78+(i%3)*.07);ellipsoid(stone,x,forestGroundHeight(x,z)+.035,z,.12,.06,.10,scene);}
  }
  // Woven pendants share the ceiling's material; no view is obstructed at eye height.
  const pendantMat=material('#e5d4ae',{map:rattan,bumpMap:rattan,bumpScale:.014,roughness:.8});
@@ -118,7 +116,7 @@ function buildScene(){scene=new THREE.Scene();scene.background=new THREE.Color('
  renderFrame();}
 function cushion(x,z,size=1.2){const shape=new THREE.Shape(),w=size/2,h=size*.42,r=.13;shape.moveTo(-w+r,-h);shape.lineTo(w-r,-h);shape.quadraticCurveTo(w,-h,w,-h+r);shape.lineTo(w,h-r);shape.quadraticCurveTo(w,h,w-r,h);shape.lineTo(-w+r,h);shape.quadraticCurveTo(-w,h,-w,h-r);shape.lineTo(-w,-h+r);shape.quadraticCurveTo(-w,-h,-w+r,-h);const g=new THREE.ExtrudeGeometry(shape,{depth:.12,bevelEnabled:true,bevelSegments:3,steps:1,bevelSize:.045,bevelThickness:.045,curveSegments:6});g.rotateX(-Math.PI/2);const m=mesh(g,linen.clone(),x,.11,z);return m;}
 function lantern(x,z,height,base=0){const frame=woodDark;box(.48,.06,.48,frame,x,base+.08,z);box(.39,height,.39,material('#fff0c5',{emissive:'#ffc772',emissiveIntensity:.42,transparent:true,opacity:.9}),x,base+height/2+.1,z);for(const dx of [-.22,.22])for(const dz of [-.22,.22])box(.035,height+.1,.035,frame,x+dx,base+height/2+.1,z+dz);box(.49,.05,.49,frame,x,base+height+.12,z);}
-function plant(x,z,s){const potted=Math.abs(x)<7,model=potted?createPottedPlant(leafTexture,Math.round(Math.abs(x+z))):createUnderstory(leafTexture,Math.round(Math.abs(x+z)));model.position.set(x,potted?(z>8?-.32:.08):-.58,z);model.scale.setScalar(potted?s*(z<0?1.05:.85):s);model.rotation.y=x<0?.35:-.35;scene.add(model);return model;}
+function plant(x,z,s){const potted=Math.abs(x)<7&&z<8,model=potted?createPottedPlant(leafTexture,Math.round(Math.abs(x+z))):createUnderstory(leafTexture,Math.round(Math.abs(x+z)));model.position.set(x,potted?.08:forestGroundHeight(x,z),z);model.scale.setScalar(potted?s*(z<0?1.05:.85):s);model.rotation.y=x<0?.35:-.35;scene.add(model);return model;}
 
 function person(color,seated,variant){return createIllustratedPerson(variant%2?'blue':'white',seated,demoIdentities[variant]);}
 function cameraTo(position,target,duration=1800,onComplete=null){transition={onComplete,from:camera.position.clone(),to:new THREE.Vector3(...position),lookFrom:currentTarget.clone(),lookTo:new THREE.Vector3(...target),started:performance.now(),duration:reduced?0:duration};}
@@ -193,8 +191,9 @@ let offeredRelease=null;
 async function checkPreviewRelease(){if(!loadedRelease||loadedRelease==='local'||document.hidden)return;try{const response=await fetch('version.json',{cache:'no-store'});if(!response.ok)return;const release=await response.json();const date=new Date(release.updatedAt);if(!Number.isNaN(date.getTime()))$('previewVersion').textContent='测试版更新于 '+date.toLocaleString('zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});if(release.id!==loadedRelease&&release.id!==offeredRelease){offeredRelease=release.id;toast('测试版有新进度，可在进堂说明中刷新查看。')}}catch{}}
 checkPreviewRelease();setInterval(checkPreviewRelease,120000);
 
-function applySeasonPalette(id){const palette=seasons[id];if(!palette)return;scene.background.set(palette.fog);scene.fog.color.set(palette.fog);terrainMaterial?.color.set(palette.ground);hemisphere?.color.set(palette.sky);stream?.water.material.color.set(palette.water);for(const button of document.querySelectorAll('[data-season]'))button.setAttribute('aria-pressed',String(button.dataset.season===id));document.querySelector('.ambient-label span').textContent=palette.label+' · 溪流';}
-seasonController=createSeasonController({initial:state.season,load:file=>new Promise((resolve,reject)=>new THREE.TextureLoader().load(file,texture=>{texture.colorSpace=THREE.SRGBColorSpace;resolve(texture)},undefined,reject)),apply:(id,palette,texture)=>{const previous=gardenMaterial.map;gardenMaterial.map=texture;gardenMaterial.needsUpdate=true;previous?.dispose();state.season=id;storage.set('xinan-season',id);applySeasonPalette(id);toast(palette.label+'，慢慢坐。')},onError:()=>toast('这幅林景暂时没有载入，请稍后再试。')});
+function applySeasonPalette(id){const palette=seasons[id];if(!palette)return;scene.background.set(palette.fog);scene.fog.color.set(palette.fog);hemisphere?.color.set(palette.sky);stream?.water.material.color.set(palette.water);for(const button of document.querySelectorAll('[data-season]'))button.setAttribute('aria-pressed',String(button.dataset.season===id));document.querySelector('.ambient-label span').textContent=palette.label+' · 溪流';}
+function prepareForestFloor(texture){texture.colorSpace=THREE.SRGBColorSpace;texture.wrapS=texture.wrapT=THREE.RepeatWrapping;texture.repeat.set(24,26);texture.anisotropy=8;return texture;}
+seasonController=createSeasonController({initial:state.season,load:(_file,palette)=>loadSeasonAssets(palette,file=>new Promise((resolve,reject)=>new THREE.TextureLoader().load(file,texture=>{texture.colorSpace=THREE.SRGBColorSpace;resolve(texture)},undefined,reject))),apply:(id,palette,bundle)=>{const previousGarden=gardenMaterial.map,previousFloor=terrainMaterial.map;gardenMaterial.map=bundle.garden;gardenMaterial.needsUpdate=true;terrainMaterial.map=terrainMaterial.bumpMap=prepareForestFloor(bundle.floor);terrainMaterial.needsUpdate=true;previousGarden?.dispose();previousFloor?.dispose();state.season=id;storage.set('xinan-season',id);applySeasonPalette(id);toast(palette.label+'，慢慢坐。')},onError:()=>toast('这幅林景暂时没有载入，请稍后再试。')});
 $('environmentButton').onclick=()=>$('environmentDialog').showModal();for(const button of document.querySelectorAll('[data-season]'))button.onclick=()=>{toast('正在换一幅林景。');seasonController.select(button.dataset.season)};
 $('visualRain').onchange=()=>{if(rain)rain.mesh.visible=$('visualRain').checked;storage.set('xinan-rain',String($('visualRain').checked))};
 function saveNature(){storage.set('xinan-nature',JSON.stringify(Object.fromEntries(nature.levels)));}

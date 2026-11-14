@@ -1,5 +1,25 @@
 import * as T from './assets/vendor/three.module.js';
 
+export function forestGroundHeight(x,z){
+ return -.60+.085*Math.sin(x*.57+z*.22)+.045*Math.cos(z*.71-x*.17);
+}
+export function createForestGround(scene,material){
+ const geometry=new T.PlaneGeometry(65,70,48,52);geometry.rotateX(-Math.PI/2);
+ const positions=geometry.attributes.position;
+ for(let i=0;i<positions.count;i++)positions.setY(i,forestGroundHeight(positions.getX(i),positions.getZ(i)));
+ geometry.computeVertexNormals();
+ const ground=new T.Mesh(geometry,material);ground.receiveShadow=true;scene.add(ground);
+ const stones=new T.InstancedMesh(new T.IcosahedronGeometry(1,1),new T.MeshStandardMaterial({color:'#8d9283',roughness:1}),48);
+ const transform=new T.Object3D();
+ for(let i=0;i<48;i++){
+  const x=(i%2?1:-1)*(8.7+(i*1.31)%8),z=-13+(i*2.47)%40;
+  transform.position.set(x,forestGroundHeight(x,z)-.025,z);transform.rotation.set(i*.3,i*.91,i*.23);
+  transform.scale.set(.12+(i%5)*.055,.08+(i%3)*.035,.16+(i%4)*.05);transform.updateMatrix();stones.setMatrixAt(i,transform.matrix);
+ }
+ stones.receiveShadow=true;stones.castShadow=true;scene.add(stones);
+ return {ground,stones};
+}
+
 export function createCurtains(scene,clothMap){
  const material=new T.MeshStandardMaterial({color:'#fffdf5',map:clothMap,side:T.DoubleSide,transparent:true,opacity:.43,depthWrite:false,roughness:.9,emissive:'#fff9ee',emissiveIntensity:.04});
  const panels=[];
@@ -14,7 +34,7 @@ export function createCurtains(scene,clothMap){
 
 export function buildCorridor(scene,wood,woodDark){
  const pieces=[];function box(w,h,d,x,y,z,mat=wood){const m=new T.Mesh(new T.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;scene.add(m);pieces.push(m);return m;}
- for(const z of [9,13,17,21,25]){for(const x of [-2.65,2.65])box(.19,4.05,.19,x,2,z);box(5.6,.18,.2,0,4.02,z,woodDark);}
+ for(const z of [9,13,17,21,25]){for(const x of [-2.65,2.65]){box(.19,4.05,.19,x,2,z);box(.28,.85,.28,x,-.38,z,woodDark);}box(5.6,.18,.2,0,4.02,z,woodDark);}
  for(const x of [-2.65,2.65])box(.16,.18,18,x,4.02,17,woodDark);
  box(5.8,.10,18.5,0,4.15,17,woodDark);
  for(let z=8.5;z<26;z+=.52)box(5.55,.065,.08,0,3.94,z);
