@@ -21,8 +21,8 @@ export function createForestGround(scene,material){
 }
 
 export function createCurtains(scene,clothMap){
- const material=new T.MeshPhysicalMaterial({color:'#fffef8',map:clothMap,side:T.DoubleSide,transparent:true,opacity:.68,depthWrite:false,roughness:1,metalness:0,sheen:.65,sheenColor:new T.Color('#fffdf4'),sheenRoughness:1});
- const hemMaterial=material.clone();hemMaterial.opacity=.85;hemMaterial.sheen=.25;
+ const material=new T.MeshPhysicalMaterial({color:'#fffef8',map:clothMap,side:T.DoubleSide,transparent:true,opacity:.62,depthWrite:false,roughness:1,metalness:0,emissive:'#f6f2e7',emissiveIntensity:.22,sheen:.35,sheenColor:new T.Color('#fffdf4'),sheenRoughness:1});
+ const hemMaterial=material.clone();hemMaterial.opacity=.79;hemMaterial.sheen=.15;
  const panels=[],width=2.65,height=4.15,columns=56,rows=64;
  const locations=[...[-1,1].flatMap(side=>[-7.8,-2.3,3.3].map(z=>({x:side*6.72,z,rotation:side*Math.PI/2}))),...[-1,1].map(side=>({x:side*5.25,z:7.35,rotation:0}))];
  for(const location of locations){
@@ -41,7 +41,7 @@ export function createCurtains(scene,clothMap){
     const x=rest[i*3],y=rest[i*3+1],v=Math.max(0,-y/height),u=x/width+.5;
     const gust=moving?Math.sin(time*.43+phase)*.24:0;
     const ripple=moving?Math.sin(time*1.1+u*7-v*3+phase)*.045*v*v:0;
-    const fold=.14*Math.sin(u*Math.PI*8+.8*v+.12*Math.sin(phase+u*2))+.035*Math.sin(u*Math.PI*13+phase+v*1.5)*v+.035*v*Math.sin(u*Math.PI*4+phase);
+    const fold=.085*Math.sin(u*Math.PI*8+.8*v+.12*Math.sin(phase+u*2))+.025*Math.sin(u*Math.PI*13+phase+v*1.5)*v+.035*v*Math.sin(u*Math.PI*4+phase);
     positions.setXYZ(i,x+gust*.45*v*v+.04*Math.sin(u*Math.PI*3+phase)*v,y+.075*Math.sin(u*Math.PI*1.4+phase)*v*v+(moving?.065*Math.sin(time*.6+phase+u*2)*v*v:0),fold+gust*Math.sin(v*Math.PI/2)+ripple);
    }
    positions.needsUpdate=true;if(frame%2===0)mesh.geometry.computeVertexNormals();

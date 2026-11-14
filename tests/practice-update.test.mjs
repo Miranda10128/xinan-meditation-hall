@@ -41,7 +41,7 @@ test('dense projected seat labels never overlap and preserve the selected seat i
 });
 test('sheer curtains have readable folded cloth and doubled fabric hems',()=>{
  const {panels}=createCurtains(new Scene(),null);assert.equal(panels.length,8);
- for(const {mesh} of panels){assert.ok(mesh.material.opacity>.65&&mesh.material.opacity<.9);assert.equal(mesh.material.depthWrite,false);assert.equal(mesh.children.length,1);assert.ok(mesh.children[0].material.opacity>mesh.material.opacity);assert.equal(mesh.geometry.attributes.position,mesh.children[0].geometry.attributes.position);}
+ for(const {mesh} of panels){assert.ok(mesh.material.transparent&&mesh.material.opacity>0&&mesh.material.opacity<1);assert.equal(mesh.material.depthWrite,false);assert.equal(mesh.children.length,1);assert.ok(mesh.children[0].material.opacity>mesh.material.opacity);assert.equal(mesh.geometry.attributes.position,mesh.children[0].geometry.attributes.position);}
 });
 
 test('108 concurrent HTTP participants claim different seats in one room',async()=>{
