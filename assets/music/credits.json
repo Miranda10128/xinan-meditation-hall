@@ -1,0 +1,46 @@
+[
+  {
+    "id": "meditation",
+    "title": "Meditation Impromptu 01",
+    "author": "Kevin MacLeod",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "source": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1100163",
+    "download": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Meditation%20Impromptu%2001.mp3",
+    "duration": 212.819592,
+    "modifications": "Loudness normalization, two-second fade-in and three-second fade-out, 128kbps MP3. Fluidscape excerpt limited to first eight minutes."
+  },
+  {
+    "id": "fresh-air",
+    "title": "Fresh Air",
+    "author": "Kevin MacLeod",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "source": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1500084",
+    "download": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Fresh%20Air.mp3",
+    "duration": 294.060438,
+    "modifications": "Loudness normalization, two-second fade-in and three-second fade-out, 128kbps MP3. Fluidscape excerpt limited to first eight minutes."
+  },
+  {
+    "id": "clean-soul",
+    "title": "Clean Soul",
+    "author": "Kevin MacLeod",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "source": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1300033",
+    "download": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Clean%20Soul.mp3",
+    "duration": 306.7298,
+    "modifications": "Loudness normalization, two-second fade-in and three-second fade-out, 128kbps MP3. Fluidscape excerpt limited to first eight minutes."
+  },
+  {
+    "id": "fluidscape",
+    "title": "Fluidscape",
+    "author": "Kevin MacLeod",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "source": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1100393",
+    "download": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Fluidscape.mp3",
+    "duration": 480,
+    "modifications": "Loudness normalization, two-second fade-in and three-second fade-out, 128kbps MP3. Fluidscape excerpt limited to first eight minutes."
+  }
+]

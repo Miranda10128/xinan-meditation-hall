@@ -26,3 +26,8 @@
 - morning-leaf.webp：为本项目新生成的蕉叶表面纹理；用于plants.mjs中的真实曲面叶片，非整株植物照片。PNG原稿仅保留本机，不进入手机发布包。近景花盆及植株使用自建三维几何，远景贴片继续保留。
 
 Forest floor atlas: generated with built-in image_gen for this project. Four equal top-down diffuse ground tiles: spring moss and fresh shoots, summer darker moss/soil/pebbles, autumn muted fallen leaves, winter light snow. Prompt requested photorealistic seamless albedo, consistent scale, no horizon, text, props or directional cast shadows. Original atlas retained locally at design/forest-floor-atlas.png; runtime assets forest-floor-{spring,summer,autumn,winter}.webp, 768×768, total843810 bytes. These are generated visual materials, not photographs of a real retreat.
+
+
+White voile: assets/white-voile.webp, generated using built-in image_gen. Prompt: seamless flat macro diffuse photograph of ivory-white fine sheer voile weave, low contrast, no folds, cast shadows, objects or text. The runtime mesh supplies folds and wind motion. Original retained locally as design/white-voile-source.png.
+
+New meditation playlist: Kevin MacLeod, Meditation Impromptu 01 / Fresh Air / Clean Soul / Fluidscape, CC BY4.0. Official source, license links and modifications are recorded in assets/music/CREDITS.md and credits.json. Original downloads stay in ignored assets/music/source and are excluded from the published build.

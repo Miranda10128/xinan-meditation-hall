@@ -21,14 +21,32 @@ export function createForestGround(scene,material){
 }
 
 export function createCurtains(scene,clothMap){
- const material=new T.MeshStandardMaterial({color:'#fffdf5',map:clothMap,side:T.DoubleSide,transparent:true,opacity:.43,depthWrite:false,roughness:.9,emissive:'#fff9ee',emissiveIntensity:.04});
- const panels=[];
- for(const side of [-1,1])for(const z of [-6.5,.2,6.4]){
-  const geometry=new T.PlaneGeometry(1.85,3.35,16,24);geometry.translate(0,-3.35/2,0);const rest=geometry.attributes.position.array.slice();
-  const mesh=new T.Mesh(geometry,material);mesh.position.set(side*6.72,4.32,z);mesh.rotation.y=side*Math.PI/2;mesh.receiveShadow=true;mesh.renderOrder=3;scene.add(mesh);panels.push({mesh,rest,phase:z*.37+side});
+ const material=new T.MeshPhysicalMaterial({color:'#fffef8',map:clothMap,side:T.DoubleSide,transparent:true,opacity:.68,depthWrite:false,roughness:1,metalness:0,sheen:.65,sheenColor:new T.Color('#fffdf4'),sheenRoughness:1});
+ const hemMaterial=material.clone();hemMaterial.opacity=.85;hemMaterial.sheen=.25;
+ const panels=[],width=2.65,height=4.15,columns=56,rows=64;
+ const locations=[...[-1,1].flatMap(side=>[-7.8,-2.3,3.3].map(z=>({x:side*6.72,z,rotation:side*Math.PI/2}))),...[-1,1].map(side=>({x:side*5.25,z:7.35,rotation:0}))];
+ for(const location of locations){
+  const geometry=new T.PlaneGeometry(width,height,columns,rows);geometry.translate(0,-height/2,0);const rest=geometry.attributes.position.array.slice();
+  const mesh=new T.Mesh(geometry,material);mesh.position.set(location.x,4.42,location.z);mesh.rotation.y=location.rotation;mesh.receiveShadow=true;mesh.renderOrder=3;scene.add(mesh);
+  // Doubled fabric at the gathered heading and sewn bottom hem makes the cloth edge readable.
+  const hemGeometry=new T.BufferGeometry();hemGeometry.setAttribute('position',geometry.attributes.position);hemGeometry.setAttribute('normal',geometry.attributes.normal);hemGeometry.setAttribute('uv',geometry.attributes.uv);
+  const index=geometry.index.array,indices=[];for(const row of [0,rows-1])for(let i=row*columns*6;i<(row+1)*columns*6;i++)indices.push(index[i]);hemGeometry.setIndex(indices);
+  const hems=new T.Mesh(hemGeometry,hemMaterial);hems.renderOrder=4;mesh.add(hems);
+  panels.push({mesh,rest,phase:location.z*.37+location.x*.21});
  }
  let frame=0;
- function update(time,moving=true){for(const {mesh,rest,phase}of panels){const positions=mesh.geometry.attributes.position;for(let i=0;i<positions.count;i++){const x=rest[i*3],y=rest[i*3+1],v=Math.max(0,-y/3.35),u=x/1.85+.5;const sway=moving?Math.sin(time*.65+phase+v*2.5)*.13*v*v:0;positions.setXYZ(i,x+(moving?.08*Math.sin(time*.5+phase)*v*v:0),y+(moving?.025*Math.sin(time*.7+u*4)*v*v:0),.075*Math.sin(u*Math.PI*8)+sway)}positions.needsUpdate=true;if(frame%3===0)mesh.geometry.computeVertexNormals();}frame++;}
+ function update(time,moving=true){
+  for(const {mesh,rest,phase}of panels){const positions=mesh.geometry.attributes.position;
+   for(let i=0;i<positions.count;i++){
+    const x=rest[i*3],y=rest[i*3+1],v=Math.max(0,-y/height),u=x/width+.5;
+    const gust=moving?Math.sin(time*.43+phase)*.24:0;
+    const ripple=moving?Math.sin(time*1.1+u*7-v*3+phase)*.045*v*v:0;
+    const fold=.14*Math.sin(u*Math.PI*8+.8*v+.12*Math.sin(phase+u*2))+.035*Math.sin(u*Math.PI*13+phase+v*1.5)*v+.035*v*Math.sin(u*Math.PI*4+phase);
+    positions.setXYZ(i,x+gust*.45*v*v+.04*Math.sin(u*Math.PI*3+phase)*v,y+.075*Math.sin(u*Math.PI*1.4+phase)*v*v+(moving?.065*Math.sin(time*.6+phase+u*2)*v*v:0),fold+gust*Math.sin(v*Math.PI/2)+ripple);
+   }
+   positions.needsUpdate=true;if(frame%2===0)mesh.geometry.computeVertexNormals();
+  }frame++;
+ }
  update(0,false);return {panels,update};
 }
 

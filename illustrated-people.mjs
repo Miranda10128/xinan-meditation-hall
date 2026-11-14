@@ -35,6 +35,6 @@ export function createIllustratedPerson(robe='white',seated=true,identity=null){
  };
  root.userData.poseIdle=time=>{figure.scale.y=1+Math.sin(time*.7)*.0015};
  root.userData.dispose=()=>{figure.geometry.dispose();material.dispose()};
- root.userData.artwork='painted-adult';root.userData.robe=visitorProfiles[profile]?.robe||robe;root.userData.identity=profile;
+ const baseScale=seated&&identity!=='guide'?.82:1;root.scale.setScalar(baseScale);root.userData.baseScale=baseScale;root.userData.artwork='painted-adult';root.userData.robe=visitorProfiles[profile]?.robe||robe;root.userData.identity=profile;
  return root;
 }

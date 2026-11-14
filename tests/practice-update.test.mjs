@@ -1,0 +1,54 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {breathingFrame} from '../breathing.mjs';
+import {createMusicPlaylist,meditationTracks} from '../music-playlist.mjs';
+import {RoomStore} from '../server/rooms.mjs';
+import {declutterSeatLabels} from '../seat-projection.mjs';
+import {createCurtains} from '../atmosphere.mjs';
+import {Scene} from '../assets/vendor/three.module.js';
+import {createHallServer} from '../server.mjs';
+
+test('breath word, countdown and expansion share the same four-in six-out clock',()=>{
+ const start=breathingFrame(0),middle=breathingFrame(2000),out=breathingFrame(4000),end=breathingFrame(9999),next=breathingFrame(10000);
+ assert.equal(start.word,'吸气');assert.equal(start.remaining,4);assert.equal(middle.remaining,2);assert.ok(middle.scale>start.scale);
+ assert.equal(out.word,'呼气');assert.equal(out.remaining,6);assert.equal(out.scale,1.12);assert.equal(end.remaining,1);assert.ok(end.scale<out.scale);assert.deepEqual(next,start);
+ assert.deepEqual(breathingFrame(2371),breathingFrame(2371));assert.equal(breathingFrame(-1).remaining,4);
+});
+class FakeAudio{constructor(){this.events={};this.src='';this.loop=true;}pause(){}addEventListener(name,fn){this.events[name]=fn}}
+test('music changes between visits and finishes each shuffled set before repeating',()=>{
+ const audio=new FakeAudio();let last='fresh-air';const playlist=createMusicPlaylist({audio,random:()=>.2,getLast:()=>last,remember:id=>last=id});
+ const first=playlist.beginVisit();assert.notEqual(first.id,'fresh-air');assert.equal(audio.loop,false);
+ const ids=[first.id,...Array.from({length:3},()=>playlist.next().id)];assert.equal(new Set(ids).size,meditationTracks.length);
+ const previous=playlist.current.id;assert.notEqual(playlist.next().id,previous);
+ const old=playlist.current.id,newStart=playlist.beginVisit().id;assert.notEqual(newStart,old);assert.notEqual(newStart,first.id);
+});
+test('ended advances the playlist but only requests playback while the practice is audible and active',()=>{
+ const audio=new FakeAudio();let active=false,plays=0;const playlist=createMusicPlaylist({audio,shouldPlay:()=>active,onPlayRequested:()=>plays++});
+ const first=playlist.beginVisit().id;audio.events.ended();assert.notEqual(playlist.current.id,first);assert.equal(plays,0);active=true;audio.events.ended();assert.equal(plays,1);
+});
+test('the shared backend accepts 108 distinct participants and seat 108, then opens another room',()=>{
+ const store=new RoomStore();const people=Array.from({length:108},(_,i)=>store.join('同修'+i));
+ assert.equal(new Set(people.map(p=>p.roomId)).size,1);
+ for(let i=0;i<people.length;i++)assert.equal(store.claim(people[i].token,i+1).status,200);
+ const snapshot=store.snapshot(people[0].token);assert.equal(snapshot.capacity,108);assert.equal(snapshot.seated,108);assert.equal(new Set(snapshot.seats.map(s=>s.seat)).size,108);
+ assert.equal(store.claim(people[0].token,109).status,400);assert.notEqual(store.join('下一堂').roomId,people[0].roomId);
+});
+
+test('dense projected seat labels never overlap and preserve the selected seat identity',()=>{
+ const points=Array.from({length:108},(_,i)=>({seat:{id:i+1},left:25+(i%12)*13,top:100+Math.floor(i/12)*15,visible:true}));
+ const visible=declutterSeatLabels(points).filter(p=>p.visible);assert.ok(visible.length<points.length&&visible.length>1);
+ for(let i=0;i<visible.length;i++)for(let j=i+1;j<visible.length;j++)assert.ok(Math.abs(visible[i].left-visible[j].left)>=44||Math.abs(visible[i].top-visible[j].top)>=39);
+ assert.ok(visible.every(p=>points.find(original=>original.seat.id===p.seat.id).left===p.left));
+});
+test('sheer curtains have readable folded cloth and doubled fabric hems',()=>{
+ const {panels}=createCurtains(new Scene(),null);assert.equal(panels.length,8);
+ for(const {mesh} of panels){assert.ok(mesh.material.opacity>.65&&mesh.material.opacity<.9);assert.equal(mesh.material.depthWrite,false);assert.equal(mesh.children.length,1);assert.ok(mesh.children[0].material.opacity>mesh.material.opacity);assert.equal(mesh.geometry.attributes.position,mesh.children[0].geometry.attributes.position);}
+});
+
+test('108 concurrent HTTP participants claim different seats in one room',async()=>{
+ const server=createHallServer();await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const base=`http://127.0.0.1:${server.address().port}`;
+ const post=async(action,data,token='')=>{const response=await fetch(base+'/api/presence/'+action,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify(data)});return {status:response.status,data:await response.json()}};
+ try{const joins=await Promise.all(Array.from({length:108},(_,i)=>post('join',{name:'并发'+i})));assert.ok(joins.every(r=>r.status===200));assert.equal(new Set(joins.map(r=>r.data.roomId)).size,1);
+  const claims=await Promise.all(joins.map((join,i)=>post('seat',{seat:i+1},join.data.token)));assert.ok(claims.every(r=>r.status===200));assert.equal(Math.max(...claims.map(r=>r.data.seated)),108);assert.ok(claims.every(r=>r.data.capacity===108));
+  const conflict=await post('seat',{seat:108},joins[0].data.token);assert.equal(conflict.status,409);
+ }finally{server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}
+});

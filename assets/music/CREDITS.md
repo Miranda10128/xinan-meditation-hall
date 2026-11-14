@@ -1,0 +1,6 @@
+# Meditation music
+
+- **Meditation Impromptu 01** — Kevin MacLeod (incompetech.com). [Original](https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1100163). [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Loudness normalization, two-second fade-in and three-second fade-out, 128kbps MP3. Fluidscape excerpt limited to first eight minutes.
+- **Fresh Air** — Kevin MacLeod (incompetech.com). [Original](https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1500084). [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Loudness normalization, two-second fade-in and three-second fade-out, 128kbps MP3. Fluidscape excerpt limited to first eight minutes.
+- **Clean Soul** — Kevin MacLeod (incompetech.com). [Original](https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1300033). [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Loudness normalization, two-second fade-in and three-second fade-out, 128kbps MP3. Fluidscape excerpt limited to first eight minutes.
+- **Fluidscape** — Kevin MacLeod (incompetech.com). [Original](https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1100393). [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Loudness normalization, two-second fade-in and three-second fade-out, 128kbps MP3. Fluidscape excerpt limited to first eight minutes.

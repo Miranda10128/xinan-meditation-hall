@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto';
+import {HALL_CAPACITY} from '../circle-layout.mjs';
 
 export class RoomStore {
- constructor({capacity=24,ttlMs=120000,now=Date.now}={}){this.capacity=capacity;this.ttlMs=ttlMs;this.now=now;this.sessions=new Map();this.rooms=new Map();this.revision=0;this.listeners=new Map();}
+ constructor({capacity=HALL_CAPACITY,ttlMs=120000,now=Date.now}={}){this.capacity=capacity;this.ttlMs=ttlMs;this.now=now;this.sessions=new Map();this.rooms=new Map();this.revision=0;this.listeners=new Map();}
  join(name){this.sweep();if(this.sessions.size>=2400)throw Object.assign(new Error('room_capacity_reached'),{status:429});let room=[...this.rooms.values()].find(r=>r.members.size<this.capacity);if(!room){const id=`morning-${String(this.rooms.size+1).padStart(2,'0')}`;room={id,members:new Set()};this.rooms.set(id,room)}const token=randomUUID(),id=randomUUID();const session={token,id,roomId:room.id,name:[...String(name||'听风').trim()].slice(0,12).join('')||'听风',seat:null,lastSeen:this.now()};this.sessions.set(token,session);room.members.add(token);this.emit(room.id);return {token,id,roomId:room.id,snapshot:this.snapshot(token)}}
  get(token){const s=this.sessions.get(token);if(!s||this.now()-s.lastSeen>this.ttlMs){if(s)this.leave(token);return null}return s;}
  heartbeat(token){const s=this.get(token);if(!s)return false;s.lastSeen=this.now();return true;}

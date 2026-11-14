@@ -1,8 +1,11 @@
 export const hallCenter={x:0,z:-1.5};
+export const HALL_CAPACITY=108;
+export const seatRings=[8,12,16,20,24,28];
 export function circularSeats(){
- return [2.6,4.45,6.3].flatMap((radius,ring)=>Array.from({length:8},(_,index)=>{
-  const angle=(index+.5)*Math.PI/4,x=Math.sin(angle)*radius,z=hallCenter.z+Math.cos(angle)*radius;
-  return {id:ring*8+index+1,x,z,ring:ring+1,rotation:Math.atan2(x,z-hallCenter.z)};
+ let id=0;
+ return seatRings.flatMap((count,ring)=>Array.from({length:count},(_,index)=>{
+  const radius=1.95+ring*.85,angle=(index+.5)*Math.PI*2/count,x=Math.sin(angle)*radius,z=hallCenter.z+Math.cos(angle)*radius;
+  return {id:++id,x,z,ring:ring+1,rotation:Math.atan2(x,z-hallCenter.z)};
  }));
 }
 export function seatView(seat,third=false){
