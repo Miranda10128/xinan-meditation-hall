@@ -25,12 +25,12 @@ test('ended advances the playlist but only requests playback while the practice 
  const audio=new FakeAudio();let active=false,plays=0;const playlist=createMusicPlaylist({audio,shouldPlay:()=>active,onPlayRequested:()=>plays++});
  const first=playlist.beginVisit().id;audio.events.ended();assert.notEqual(playlist.current.id,first);assert.equal(plays,0);active=true;audio.events.ended();assert.equal(plays,1);
 });
-test('the shared backend accepts 108 distinct participants and seat 108, then opens another room',()=>{
- const store=new RoomStore();const people=Array.from({length:108},(_,i)=>store.join('同修'+i));
+test('one hall holds 36 participants before opening a separate peaceful room',()=>{
+ const store=new RoomStore();const people=Array.from({length:36},(_,i)=>store.join('同修'+i));
  assert.equal(new Set(people.map(p=>p.roomId)).size,1);
  for(let i=0;i<people.length;i++)assert.equal(store.claim(people[i].token,i+1).status,200);
- const snapshot=store.snapshot(people[0].token);assert.equal(snapshot.capacity,108);assert.equal(snapshot.seated,108);assert.equal(new Set(snapshot.seats.map(s=>s.seat)).size,108);
- assert.equal(store.claim(people[0].token,109).status,400);assert.notEqual(store.join('下一堂').roomId,people[0].roomId);
+ const snapshot=store.snapshot(people[0].token);assert.equal(snapshot.capacity,36);assert.equal(snapshot.seated,36);assert.equal(new Set(snapshot.seats.map(s=>s.seat)).size,36);
+ assert.equal(store.claim(people[0].token,37).status,400);assert.notEqual(store.join('下一堂').roomId,people[0].roomId);
 });
 
 test('dense projected seat labels never overlap and preserve the selected seat identity',()=>{
@@ -44,11 +44,12 @@ test('sheer curtains have readable folded cloth and doubled fabric hems',()=>{
  for(const {mesh} of panels){assert.ok(mesh.material.transparent&&mesh.material.opacity>0&&mesh.material.opacity<1);assert.equal(mesh.material.depthWrite,false);assert.equal(mesh.children.length,1);assert.ok(mesh.children[0].material.opacity>mesh.material.opacity);assert.equal(mesh.geometry.attributes.position,mesh.children[0].geometry.attributes.position);}
 });
 
-test('108 concurrent HTTP participants claim different seats in one room',async()=>{
+test('108 concurrent HTTP participants are distributed across three 36-seat rooms',async()=>{
  const server=createHallServer();await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const base=`http://127.0.0.1:${server.address().port}`;
  const post=async(action,data,token='')=>{const response=await fetch(base+'/api/presence/'+action,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify(data)});return {status:response.status,data:await response.json()}};
- try{const joins=await Promise.all(Array.from({length:108},(_,i)=>post('join',{name:'并发'+i})));assert.ok(joins.every(r=>r.status===200));assert.equal(new Set(joins.map(r=>r.data.roomId)).size,1);
-  const claims=await Promise.all(joins.map((join,i)=>post('seat',{seat:i+1},join.data.token)));assert.ok(claims.every(r=>r.status===200));assert.equal(Math.max(...claims.map(r=>r.data.seated)),108);assert.ok(claims.every(r=>r.data.capacity===108));
-  const conflict=await post('seat',{seat:108},joins[0].data.token);assert.equal(conflict.status,409);
+ try{const joins=await Promise.all(Array.from({length:108},(_,i)=>post('join',{name:'并发'+i})));assert.ok(joins.every(r=>r.status===200));assert.equal(new Set(joins.map(r=>r.data.roomId)).size,3);
+  const counts=new Map();const claims=await Promise.all(joins.map(join=>{const room=join.data.roomId,seat=(counts.get(room)||0)+1;counts.set(room,seat);return post('seat',{seat},join.data.token)}));
+  assert.ok([...counts.values()].every(n=>n===36));assert.ok(claims.every(r=>r.status===200));assert.equal(Math.max(...claims.map(r=>r.data.seated)),36);assert.ok(claims.every(r=>r.data.capacity===36));
+  const conflict=await post('seat',{seat:36},joins[0].data.token);assert.equal(conflict.status,409);
  }finally{server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}
 });
