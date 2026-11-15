@@ -52,7 +52,7 @@ function tickGuidance(){
  document.body.dataset.audioState=item?'voice-playing':'voice-resting';
  // One continuous audio file includes the pauses, so background timers do not have to switch tracks.
  if(guidePlayer.readyState>0&&Math.abs(guidePlayer.currentTime-position)>.9)guidePlayer.currentTime=Math.min(position,guidePlayer.duration||position);
- if(guidePlayer.paused&&!guidePlayer.ended&&!guidePlayPending){const version=guidePlaybackVersion;guidePlayPending=true;guidePlayer.play().catch(e=>{if(version!==guidePlaybackVersion||e.name==='AbortError')return;toast('引导音频暂未播放，请重新开启声音。');state.sound=false;soundButton()}).finally(()=>{if(version===guidePlaybackVersion)guidePlayPending=false})}
+ if(guidePlayer.paused&&!guidePlayer.ended&&!guidePlayPending){const version=guidePlaybackVersion;guidePlayPending=true;guidePlayer.play().catch(e=>{if(version!==guidePlaybackVersion||e.name==='AbortError')return;setPaused(true);toast('引导暂未播放，练习已暂停。可以点击继续重试。')}).finally(()=>{if(version===guidePlaybackVersion)guidePlayPending=false})}
 }
 
 async function updateAudio(){nature.sync({enabled:state.sound&&!state.ended,paused:state.paused&&state.phase==='seated',duck:state.mode==='guided'&&state.phase==='seated'});const version=++audioVersion;pauseMusic();stopGuide();if(!state.sound||state.paused||state.phase!=='seated'||state.ended)return;if(state.mode==='guided'){tickGuidance();return}if(state.mode!=='music')return;try{await music.play();document.body.dataset.audioState='music-playing';if(version!==audioVersion)pauseMusic()}catch(error){if(version===audioVersion&&error.name!=='AbortError'){setPaused(true);toast('音乐暂未播放，练习已暂停。可以点击继续重试。')}}}
