@@ -12,3 +12,22 @@ test('returning through browser back cache reconnects once and releases again on
  h.handlers.get('pageshow')({persisted:true});await flush();assert.equal(h.streams.length,2,'duplicate pageshow must not create a second session');
  h.handlers.get('pagehide')();assert.equal(h.timers.size,0);assert.equal(h.beacons.length,2);assert.equal(h.streams[1].closed,true);
 });
+
+test('heartbeat recovery reopens the room stream without allocating another visitor',async()=>{
+ const h=harness(),statuses=[],snapshots=[];
+ const Original=h.env.EventSource;
+ h.env.EventSource=class extends Original{addEventListener(name,fn){this[name]=fn}};
+ const client=connectPresence({name:()=> '听风',onSnapshot:s=>snapshots.push(s),onStatus:s=>statuses.push(s)},h.env);
+ await flush();const id=client.id,token=h.streams[0].url;
+ h.streams[0].onerror();assert.equal(client.available,false);
+ const fetch=h.env.fetch;h.env.fetch=async()=>{throw new Error('offline')};
+ await [...h.timers.values()][0]();assert.equal(statuses.at(-1),'offline');
+ h.env.fetch=fetch;await [...h.timers.values()][0]();
+ assert.equal(h.streams.length,2);assert.equal(h.streams[0].closed,true);
+ assert.equal(h.streams[1].url,token);assert.equal(client.id,id);
+ assert.equal(client.available,false,'wait for authoritative room snapshot');
+ h.streams[1].room({data:JSON.stringify({seats:[{id:2}],seated:1})});
+ assert.equal(client.available,true);assert.equal(statuses.at(-1),'live');assert.equal(snapshots.at(-1).seated,1);
+ await [...h.timers.values()][0]();assert.equal(h.streams.length,2);
+ client.disconnect();
+});
